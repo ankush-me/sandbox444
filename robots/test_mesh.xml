@@ -1,0 +1,22 @@
+<KinBody name="Test">
+<Body name="Body2" type="dynamic">
+    <!-- change the mass properties of the body-->
+    <Mass type="mimicgeom">
+      <!-- specify the total mass-->
+      <total>0.40605</total>
+      <!-- specify the 3x3 inertia matrix-->
+      <inertia>2 0 0 0 3 0 0 0 5</inertia>
+      <!-- specify the center of mass (if using ODE physics engine, should be 0)-->
+      <com>0.008842 -0.000018 0.07367</com>
+    </Mass>
+    <!-- create a sphere-->
+    <Geom type="sphere">
+      <!-- although the underlying collision geometry will be a sphere,-->
+      <!-- render it as a coffee pot-->
+      <Render>models/objects/coffeepot.iv</Render>
+      <Translation>0 -1.5 0</Translation>
+      <Radius>1.5</Radius>
+    </Geom>
+    <!-- create a triangle mesh-->
+</Body>
+</KinBody>
