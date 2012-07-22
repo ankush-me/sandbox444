@@ -1,0 +1,3 @@
+Simulates PR2 in openrave and implements a simple IK solver.
+
+move.py : shows an example usage of ghost_PR2.py
