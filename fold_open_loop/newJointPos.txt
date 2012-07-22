@@ -1,0 +1,30 @@
+L arm joints
+[  0.142   0.548   0.75   -1.465   3.125  -0.548  16.754]
+R arm joints
+[ -0.098   0.262  -0.508  -1.569   9.424  -0.526 -12.174]
+L arm pose matrix from base footprint to l_gripper_tool_frame
+[[ 0.888 -0.197 -0.416  0.727]
+ [-0.426 -0.011 -0.905 -0.02 ]
+ [ 0.174  0.98  -0.093  0.997]
+ [ 0.     0.     0.     1.   ]]
+R arm pose matrix from base footprint to r_gripper_tool_frame
+[[ 0.72   0.301  0.625  0.652]
+ [ 0.351 -0.935  0.047 -0.025]
+ [ 0.599  0.186 -0.779  1.267]
+ [ 0.     0.     0.     1.   ]]
+And again: 
+L arm joints
+[  0.142   0.549   0.751  -1.465   3.125  -0.549  29.427]
+R arm joints
+[ -0.098   0.262  -0.507  -1.568   9.425  -0.527 -12.173]
+L arm pose matrix from base footprint to l_gripper_tool_frame
+[[ 0.888 -0.238 -0.393  0.727]
+ [-0.426 -0.108 -0.898 -0.02 ]
+ [ 0.172  0.965 -0.197  0.996]
+ [ 0.     0.     0.     1.   ]]
+R arm pose matrix from base footprint to r_gripper_tool_frame
+[[ 0.721  0.302  0.623  0.652]
+ [ 0.35  -0.936  0.048 -0.025]
+ [ 0.598  0.184 -0.78   1.267]
+ [ 0.     0.     0.     1.   ]]
+
