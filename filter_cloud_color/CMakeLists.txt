@@ -81,9 +81,11 @@ find_package(ROS
 include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
                     ${ROS_INCLUDE_DIRS}
                     ${TF_INCLUDE_DIRS} ${BULLET_INCLUDE_DIRS}
-		    ${CMAKE_SOURCE_DIR}/src)
+		    ${CMAKE_SOURCE_DIR}/src
+		    ${CV_BRIDGE_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS} ${TF_LIBRARY_DIRS}
-                 ${CMAKE_SOURCE_DIR}/src)
+                 ${CMAKE_SOURCE_DIR}/src
+		 ${CV_BRIDGE_LIBRARY_DIRS})
 
 add_definitions(${PCL_DEFINITIONS})
 add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
@@ -95,8 +97,10 @@ find_libraries(tf_libs TF_LIBRARY_DIRS TF_LIBRARIES)
 
 add_subdirectory(src)
 
-#add_executable(test test.cpp)
-#target_link_libraries(test ${PCL_LIBRARIES} FilterWriter)
+add_executable(test test.cpp)
+target_link_libraries(test ${PCL_LIBRARIES}
+                           ${OpenCV_LIBS} cv_bridge
+			   FilterWriter cloudOps utils)
 
 #############################################################
  

@@ -145,7 +145,7 @@ public:
   
   //Default constructor.
   hueFilter_wrapper(): 
-    minHue_(), maxHue_(), minSat_(0), maxSat_(255), 
+    minHue_(0), maxHue_(180), minSat_(0), maxSat_(255), 
     minVal_(0), maxVal_(255), negative_(false) {};
   
   //Parametrized constructor.

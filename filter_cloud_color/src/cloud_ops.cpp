@@ -316,7 +316,7 @@ void labelCloud(ColorCloudPtr in, const cv::Mat& labels) {
 
 ColorCloudPtr hueFilter(const ColorCloudPtr in, uint8_t minHue, uint8_t maxHue, uint8_t minSat, uint8_t maxSat, uint8_t minVal, uint8_t maxVal, bool negative) {
   MatrixXu bgr = toBGR(in);
-  int nPts = in->size();
+  int nPts = in->size(); 
   cv::Mat cvmat(in->height,in->width, CV_8UC3, bgr.data());
   cv::cvtColor(cvmat, cvmat, CV_BGR2HSV);
   vector<cv::Mat> hsvChannels;
