@@ -58,28 +58,45 @@ set(BULLET_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/bullet")
 set(BULLET_INCLUDE_DIRS "${BULLET_PATH}/include")
 #set(BULLET_LIBRARY_DIRS "${BULLET_PATH}/lib")
 
+# Set paths for CV_BRIDGE
+set(CV_BRIDGE_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/vision_opencv/cv_bridge")
+set(CV_BRIDGE_INCLUDE_DIRS "${CV_BRIDGE_PATH}/include")
+set(CV_BRIDGE_LIBRARY_DIRS "${CV_BRIDGE_PATH}/lib")
+
+# Set path for OpenCV: This is compiling with ROS's openCV. More of a hack.
+set(OpenCV_DIR "/opt/ros/$ENV{ROS_DISTRO}/share/OpenCV")
+find_package(OpenCV REQUIRED)
 
 # EXTERNAL LIBRARIES
 find_package(Boost REQUIRED)
 find_package(PCL REQUIRED)
-
+find_package(Eigen3 REQUIRED)
  # find the ros stuff: this sets $ROS_INCLUDE_DIRS and $ROS_LIBRARIES
  # see '/opt/ros/fuerte/share/ros/cmake/ros-config.cmake' for details.
 find_package(ROS
   COMPONENTS roscpp roscpp_serialization rostime rosbag
   REQUIRED)
 
-include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${ROS_INCLUDE_DIRS}
-                    ${TF_INCLUDE_DIRS} ${BULLET_INCLUDE_DIRS})
-link_directories(${PCL_LIBRARY_DIRS} ${TF_LIBRARY_DIRS})
+
+include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
+                    ${ROS_INCLUDE_DIRS}
+                    ${TF_INCLUDE_DIRS} ${BULLET_INCLUDE_DIRS}
+		    ${CMAKE_SOURCE_DIR}/src)
+link_directories(${PCL_LIBRARY_DIRS} ${TF_LIBRARY_DIRS}
+                 ${CMAKE_SOURCE_DIR}/src)
+
 add_definitions(${PCL_DEFINITIONS})
+add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
+
 
 #  Get the TF dynamic link library path
 set(tf_libs "libtf.so")
 find_libraries(tf_libs TF_LIBRARY_DIRS TF_LIBRARIES)
 
-add_library(Filter filter_color.cpp)
-target_link_libraries(Filter ${PCL_LIBRARIES} ${ROS_LIBRARIES})
+add_subdirectory(src)
 
-add_executable(test test.cpp)
-target_link_libraries(test ${PCL_LIBRARIES} Filter)
+#add_executable(test test.cpp)
+#target_link_libraries(test ${PCL_LIBRARIES} FilterWriter)
+
+#############################################################
+ 
