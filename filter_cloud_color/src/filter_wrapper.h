@@ -3,8 +3,10 @@
 
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+
 #include "utils/utils_pcl.h"
 #include "cloud_ops.h"
+
 
 /* Parent wrapper class for filter functions.
  Children of filter_wrapper must contain the function "filter" 
@@ -141,11 +143,11 @@ class hueFilter_wrapper : public filter_wrapper<ColorPoint> {
   uint8_t maxVal_;
   bool negative_;
   
-public:
+ public:
   
   //Default constructor.
-  hueFilter_wrapper(): 
-    minHue_(0), maxHue_(180), minSat_(0), maxSat_(255), 
+ hueFilter_wrapper(): 
+  minHue_(0), maxHue_(180), minSat_(0), maxSat_(255), 
     minVal_(0), maxVal_(255), negative_(false) {};
   
   //Parametrized constructor.
@@ -189,6 +191,101 @@ public:
     *out = *outCluster;
   }
 };
+
+
+/** Filters out a point iff, point.z \notin [LOW,HIGH].
+    LOW and HIGH are generally in meters. */
+class filterZ_wrapper : public filter_wrapper<ColorPoint> {
+  float _low, _high;
+public:
+  filterZ_wrapper(): _low(0), _high(100) { }
+  filterZ_wrapper(float low, float high) : _low(low), _high(high) { }
+
+  inline void setLowVal (float low) {_low = low;}
+  inline float getLowVal () {return _low;}
+
+  inline void setHighVal (float high) {_high = high;}
+  inline float getHighVal () {return _high;}
+
+  void filter (const ColorCloudPtr in, ColorCloudPtr out) {
+    ColorCloudPtr filtered_pc =  filterZ(in, _low, _high);
+    *out = *filtered_pc;
+  }
+};
+
+
+/** Filters out a point iff the distance to the query point
+    is greater than STD_THRESHOLD standard deviations
+    from the mean distance. NUM NEIGHBORS number of
+    points are used for each query. */
+class removeOutliers_wrapper : public filter_wrapper<ColorPoint> {
+  float _std_threshold;
+  int _num_neighbors;
+
+public:
+
+ removeOutliers_wrapper(): _std_threshold(1),
+    _num_neighbors(15) { }
+ removeOutliers_wrapper(float thresh, int k) : _std_threshold(thresh),
+    _num_neighbors(k) { }
+
+  inline void setThreshold (float thresh) {_std_threshold = thresh;}
+  inline float getThreshold () {return _std_threshold;}
+
+  inline void setNumNeighbors (int k) {_num_neighbors = k;}
+  inline int getNumNeighbors () {return _num_neighbors;}
+
+  void filter (const ColorCloudPtr in, ColorCloudPtr out) {
+    ColorCloudPtr filtered_pc =  removeOutliers(in, _std_threshold,
+						_num_neighbors);
+    *out = *filtered_pc;
+  }
+};
+
+
+/** Sequentially applies filters given in the input. */
+class filter_cascader : public filter_wrapper<ColorPoint> {
+  std::vector<filter_wrapper<ColorPoint>* > *_filters;
+
+public:
+ filter_cascader() {
+    _filters =
+    new std::vector<filter_wrapper<ColorPoint>* >;
+  }
+  
+  filter_cascader(std::vector<filter_wrapper<ColorPoint>* > *filters) {
+    *_filters = *filters;
+  }
+
+  /** Clears the list of the stored filters. */
+  inline void removeAll () {
+    _filters =
+      new std::vector<filter_wrapper<ColorPoint>* >;
+  }
+
+  /** Appends a filter onto the cascading list. */
+  inline void appendFilter(filter_wrapper<ColorPoint>* filter) {
+    _filters->push_back(filter);
+  }
+
+  /** Returns an iterator to the filters (from the beginning). */
+  inline std::vector<filter_wrapper<ColorPoint>* >::iterator getFilterIter() {
+    return _filters->begin();
+  }
+
+  void filter(const ColorCloudPtr in, ColorCloudPtr out) {
+    ColorCloudPtr tmp1(new ColorCloud);
+    ColorCloudPtr tmp2(new ColorCloud);
+
+    *tmp1 = *in;
+    for(int i = 0; i < _filters->size(); i += 1) {
+      _filters->at(i)->filter(tmp1, tmp2);
+      *tmp1 = *tmp2;
+    }
+    *out = *tmp1;
+  }
+};
+
 #endif
 
 /**

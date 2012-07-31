@@ -353,17 +353,6 @@ ColorCloudPtr colorSpaceFilter(const ColorCloudPtr in, uint8_t minx, uint8_t max
   cv::Mat& y = channels[1];
   cv::Mat& z = channels[2];
 
-//  cv::Mat maskx = (minx < maxx) ?
-//      (x > minx) & (x < maxx) :
-//      (x > minx) | (x < maxx);
-//  cv::Mat masky = (miny < maxy) ?
-//        (y > miny) & (y < maxy) :
-//        (y > miny) | (y < maxy);
-//  cv::Mat maskz = (minz < maxz) ?
-//        (z > minz) & (z < maxz) :
-//        (z > minz) | (z < maxz);
-//  cv::Mat mask = maskx & masky & maskz;
-
   cv::Mat mask = (x > minx) & (x < maxx);
 	if (miny > 0) mask &= (y >= miny);
 	if (maxy < 255) mask &= (y <= maxy);
@@ -375,19 +364,6 @@ ColorCloudPtr colorSpaceFilter(const ColorCloudPtr in, uint8_t minx, uint8_t max
 
 ColorCloudPtr orientedBoxFilter(ColorCloudPtr cloud_in, const Matrix3f& ori, const Vector3f& mins, const Vector3f& maxes) {
 	MatrixXf xyz = toEigenMatrix(cloud_in) * ori;
-//	Vector3f min(1000,1000,1000);
-//	Vector3f max(-1000,-1000,-1000);
-//	for (int i=0; i < xyz.rows(); i++) {
-//		for( int j=0; j<3; j++) {
-//			if (xyz(i,j) < min(j))
-//				min(j) = xyz(i,j);
-//			if (xyz(i,j) > max(j))
-//				max(j) = xyz(i,j);
-//		}
-//	}
-//	cout << "min" << endl << min << endl;
-//	cout << "max" << endl << max << endl;
-//	cout << "xyz" << endl << xyz << endl;
 	VectorXb mask(xyz.rows());
 	for (int i=0; i < xyz.rows(); i++) {
 		mask(i) = (xyz(i,0) >= mins(0)) &&

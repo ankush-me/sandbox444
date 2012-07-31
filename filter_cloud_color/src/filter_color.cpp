@@ -11,13 +11,6 @@
     bagfile unchanged.
  */
 
-/**
-void filter_point_cloud_bagfile(void(*filter)(pcl::PointCloud<pcl::PointXYZRGB>::Ptr,
-					      pcl::PointCloud<pcl::PointXYZRGB>::Ptr),
-				std::string input_file,
-				std::string output_file,
-				std::string cloud_topic) {**/
-
 void filter_point_cloud_bagfile(filter_wrapper<pcl::PointXYZRGB> *fwrapper,
 				std::string input_file,
 				std::string output_file,
@@ -30,7 +23,8 @@ void filter_point_cloud_bagfile(filter_wrapper<pcl::PointXYZRGB> *fwrapper,
   rosbag::Bag bag_out;
   bag_out.open(output_file, rosbag::bagmode::Write);
 
-
+  std::cout<<"Started processing the bagfile: "
+	   <<bag_in.getFileName()<<std::endl;
   BOOST_FOREACH(rosbag::MessageInstance const msg, view) {
     
     if(msg.getTopic() == cloud_topic
@@ -62,4 +56,6 @@ void filter_point_cloud_bagfile(filter_wrapper<pcl::PointXYZRGB> *fwrapper,
   }
   bag_in.close();
   bag_out.close();
+  
+  std::cout<<"Done!"<<std::endl;
 }
