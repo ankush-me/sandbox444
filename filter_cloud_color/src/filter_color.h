@@ -26,14 +26,6 @@
     bagfile unchanged.
  */
 
-/**
-void filter_point_cloud_bagfile(void(*filter)(pcl::PointCloud<pcl::PointXYZRGB>::Ptr,
-					      pcl::PointCloud<pcl::PointXYZRGB>::Ptr),
-				std::string input_file,
-				std::string output_file,
-				std::string cloud_topic); **/
-
-
 void filter_point_cloud_bagfile(filter_wrapper<pcl::PointXYZRGB> *fwrapper,
 				std::string input_file,
 				std::string output_file,
