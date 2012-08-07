@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
   get_random_points(40, &rand_pts, x_min, x_max, y_min, y_max, z);
   SEEDS = &rand_pts;
 
-  std::string bag_file = "/home/ankush/sandbox/bulletsim/bagfiles/folding_data_new.bag";
+  std::string bag_file = "/home/ankush/sandbox/bulletsim/bagfiles/manual_pc.bag";
   std::string cloud_topic = "/drop/points";
 
   display_bagfile(bag_file, cloud_topic, &rand_pts);
