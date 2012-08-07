@@ -24,6 +24,33 @@ public:
 		       typename pcl::PointCloud<PointT>::Ptr out) {};
 };
 
+
+/* Wrapper for downsampling clouds. */
+class downsample_wrapper : public filter_wrapper<ColorPoint> {
+  float _size;
+
+public:
+  
+  //Default constructor. Voxel size = 1cm: means 1pt/1cm^3
+  downsample_wrapper() : _size(0.01) {};
+  
+  //Parametrized constructor : set the voxel side length to SIZE.
+  downsample_wrapper(float size) : _size(size) {};
+
+  //Accessors and modifiers for filter arguments
+  inline void setSize(float size) {_size = size;}
+  inline float getSize() {return _size;}
+  
+  /*Function filter:
+    Input: in and out are ColorCloudPtr's
+    Output: out points to filtered ColorCloud */
+  void filter (const ColorCloudPtr in, ColorCloudPtr out) {
+    ColorCloudPtr outCluster = downsampleCloud(in, _size);
+    *out = *outCluster;
+  }
+};
+
+
 /* Wrapper for clusterFilter.
    Requires a specific type of Point for function pointers.
    So using ColorPoint (pcl::PointXYZRGB).
