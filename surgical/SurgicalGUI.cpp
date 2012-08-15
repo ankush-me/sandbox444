@@ -2,10 +2,11 @@
     Date  : 14th August 2012 */
 
 #include "SurgicalGUI.h"
+#include "ImageCommunicator.hpp"
 
 /** Default constructor. */
 SurgicalGUI::SurgicalGUI(QWidget *parent) : QMainWindow(parent),
-					    _ros_comm(this),
+					    //_ros_comm(this),
 					    _image_comm(this),
 					    create_new_cut(true),
 					    cutting(false), removing_cut(false),
@@ -16,8 +17,8 @@ SurgicalGUI::SurgicalGUI(QWidget *parent) : QMainWindow(parent),
 					    cut_selection(-1)
 {
   ui.setupUi( this );
-  ui.holesList->setModel(&holes);
-  ui.cutsList->setModel(&cuts);
+  //ui.holesList->setModel(holes.get());
+  //ui.cutsList->setModel(cuts.get());
 }
 
 
@@ -73,8 +74,11 @@ void SurgicalGUI::on_removeCut_clicked() {
   removing_cut = true;
 }
 
-void repaint() {
-  _image_comm.repaint(&holes, &cuts);
+void SurgicalGUI::repaint() {
+  std::list<Hole::Ptr> hole_lst = holes.toStdList();
+  std::list<Cut::Ptr>  cut_lst  = cuts.toStdList();
+
+  _image_comm.repaint(hole_lst, cut_lst);
 }
 
 
@@ -99,7 +103,7 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
   if (cutting) {
     Cut::Ptr cut;
     if(create_new_cut) {
-      Cut::Ptr cut_ptr(new cut);
+      Cut::Ptr cut_ptr(new Cut);
       cuts.push_back(cut_ptr);
       create_new_cut = !create_new_cut;
     } 

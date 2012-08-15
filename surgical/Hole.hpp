@@ -14,7 +14,7 @@ class Hole {
 
  public:
   typedef boost::shared_ptr<Hole> Ptr;
-  Hole(pcl::PointXYZRGB pt, int row, int col) : _pt(pt),
+  Hole(pcl::PointXYZRGB* pt, int row, int col) : _pt(*pt),
 						_row_idx(row),
 						_col_idx(col) {}
 

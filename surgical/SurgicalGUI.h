@@ -1,15 +1,16 @@
 /** Author: Ankush Gupta
-    Date  : 4th August, 2012 */
+    Date  : 14th August, 2012 */
 
 #ifndef _SURGICAL_GUI_
 #define _SURGICAL_GUI_
 
 #include "ui_surgical_gui.h"
-#include "Hole.h"
-#include "Cut.h"
+#include "Hole.hpp"
+#include "Cut.hpp"
 #include <iostream>
 #include <pcl/point_types.h>
-
+#include <QList>
+#include "ImageCommunicator.hpp"
 
 class SurgicalGUI : public QMainWindow {
   Q_OBJECT
@@ -30,19 +31,19 @@ class SurgicalGUI : public QMainWindow {
   void on_addCut_stateChanged(int state);
   void on_removeCut_clicked();
 
-
  private:
 
   int hole_selection;
   int cut_selection;
 
   void _all_false();
+  void repaint();
 
   /**  A class which communicates ros/ handles other ros stuff. */
-  ros_communicator _ros_comm;
+  //ros_communicator _ros_comm;
 
   /**  A class which handles the pcl stuff. */
-  image_communicator _image_comm;
+  ImageCommunicator _image_comm;
 
   /** The ui specified by QtDesigner. */
   Ui::surgical_gui ui;
