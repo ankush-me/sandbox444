@@ -5,19 +5,62 @@
 #define _SURGICAL_GUI_
 
 #include "ui_surgical_gui.h"
+#include "Hole.h"
+#include "Cut.h"
 #include <iostream>
+#include <pcl/point_types.h>
+
 
 class SurgicalGUI : public QMainWindow {
   Q_OBJECT
 
  public:
   SurgicalGUI(QWidget *parent = 0);
-  
-  private slots:
+  void interact(pcl::PointXYZRGB* pt, int row_idx, int col_idx);
+
+ private slots:
+  /** these are call-backs for the "clicked" signal
+      of the pushbuttons in the gui. */
   void on_selectFrame_clicked();
+  void on_sendButton_clicked();
+
+  void on_addHole_clicked();
+  void on_removeHole_clicked();
+
+  void on_addCut_stateChanged(int state);
+  void on_removeCut_clicked();
+
 
  private:
+
+  int hole_selection;
+  int cut_selection;
+
+  void _all_false();
+
+  /**  A class which communicates ros/ handles other ros stuff. */
+  ros_communicator _ros_comm;
+
+  /**  A class which handles the pcl stuff. */
+  image_communicator _image_comm;
+
+  /** The ui specified by QtDesigner. */
   Ui::surgical_gui ui;
+
+  /** True if the user is specifying a cut on the screen. */
+  bool create_new_cut, cutting, removing_cut, adding_hole, removing_hole;
+
+  /** Number of holes specified by the user. */
+  int num_holes;
+
+  /** Number of cuts specified by the user. */
+  int num_cuts;
+
+  /** The specified holes.*/
+  QList< Hole::Ptr > holes;
+
+  /** The specified cuts. */
+  QList< Cut::Ptr > cuts;
 };
 
 #endif

@@ -129,6 +129,18 @@
        <height>91</height>
       </rect>
      </property>
+     <property name="minimumSize">
+      <size>
+       <width>101</width>
+       <height>91</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>101</width>
+       <height>91</height>
+      </size>
+     </property>
      <property name="toolTip">
       <string>Info about holes</string>
      </property>
@@ -165,7 +177,7 @@
       <string>Remove</string>
      </property>
     </widget>
-    <widget class="QListView" name="holesList_2">
+    <widget class="QListView" name="cutsList">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -174,21 +186,33 @@
        <height>91</height>
       </rect>
      </property>
+     <property name="minimumSize">
+      <size>
+       <width>101</width>
+       <height>91</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>101</width>
+       <height>91</height>
+      </size>
+     </property>
      <property name="toolTip">
       <string>Info about holes</string>
      </property>
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
     </widget>
-    <widget class="QPushButton" name="addCut">
+    <widget class="QCheckBox" name="attCut">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>20</x>
        <y>10</y>
-       <width>98</width>
-       <height>27</height>
+       <width>97</width>
+       <height>22</height>
       </rect>
-     </property>
-     <property name="toolTip">
-      <string>Specify points for the cut</string>
      </property>
      <property name="text">
       <string>Add Cut</string>
