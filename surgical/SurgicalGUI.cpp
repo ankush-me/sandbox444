@@ -60,7 +60,7 @@ void SurgicalGUI::on_removeHole_clicked() {
 /** Update internal state to add cuts. */
 void SurgicalGUI::on_addCut_stateChanged(int state) {
   std::cout<<"check: "<<state<<std::endl;
-  create_new_cut = (state == Qt::Unchecked);
+  create_new_cut = (state == Qt::Checked);
   bool prev_cut = cutting;
   _all_false(); 
   cutting = !prev_cut;
@@ -108,8 +108,8 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
       Cut::Ptr cut_ptr(new Cut);
       cuts.push_back(cut_ptr);
       create_new_cut = !create_new_cut;
-    } 
-    cut = cuts.at(cuts.length() - 1);
+    }
+    cut = cuts.last();
     cut->add_point(pt, row_idx, col_idx);
     repaint();
   }
