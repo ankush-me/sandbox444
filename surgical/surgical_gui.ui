@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
+ <class>surgical_gui</class>
+ <widget class="QMainWindow" name="surgical_gui">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -32,7 +32,7 @@
    <bool>false</bool>
   </property>
   <property name="windowTitle">
-   <string>SurgiCal</string>
+   <string>SurgiC@l</string>
   </property>
   <property name="toolTip">
    <string/>

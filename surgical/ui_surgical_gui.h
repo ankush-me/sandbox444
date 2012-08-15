@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'surgical_gui.ui'
 **
-** Created: Tue Aug 14 19:57:21 2012
+** Created: Tue Aug 14 21:01:31 2012
 **      by: Qt User Interface Compiler version 4.8.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -23,7 +23,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Ui_MainWindow
+class Ui_surgical_gui
 {
 public:
     QWidget *centralwidget;
@@ -38,20 +38,20 @@ public:
     QListView *holesList_2;
     QPushButton *addCut;
 
-    void setupUi(QMainWindow *MainWindow)
+    void setupUi(QMainWindow *surgical_gui)
     {
-        if (MainWindow->objectName().isEmpty())
-            MainWindow->setObjectName(QString::fromUtf8("MainWindow"));
-        MainWindow->resize(336, 318);
+        if (surgical_gui->objectName().isEmpty())
+            surgical_gui->setObjectName(QString::fromUtf8("surgical_gui"));
+        surgical_gui->resize(336, 318);
         QSizePolicy sizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
         sizePolicy.setHorizontalStretch(0);
         sizePolicy.setVerticalStretch(0);
-        sizePolicy.setHeightForWidth(MainWindow->sizePolicy().hasHeightForWidth());
-        MainWindow->setSizePolicy(sizePolicy);
-        MainWindow->setMinimumSize(QSize(336, 318));
-        MainWindow->setMaximumSize(QSize(336, 318));
-        MainWindow->setMouseTracking(false);
-        centralwidget = new QWidget(MainWindow);
+        sizePolicy.setHeightForWidth(surgical_gui->sizePolicy().hasHeightForWidth());
+        surgical_gui->setSizePolicy(sizePolicy);
+        surgical_gui->setMinimumSize(QSize(336, 318));
+        surgical_gui->setMaximumSize(QSize(336, 318));
+        surgical_gui->setMouseTracking(false);
+        centralwidget = new QWidget(surgical_gui);
         centralwidget->setObjectName(QString::fromUtf8("centralwidget"));
         selectFrame = new QPushButton(centralwidget);
         selectFrame->setObjectName(QString::fromUtf8("selectFrame"));
@@ -88,55 +88,55 @@ public:
         addCut = new QPushButton(frame_2);
         addCut->setObjectName(QString::fromUtf8("addCut"));
         addCut->setGeometry(QRect(10, 10, 98, 27));
-        MainWindow->setCentralWidget(centralwidget);
+        surgical_gui->setCentralWidget(centralwidget);
 
-        retranslateUi(MainWindow);
+        retranslateUi(surgical_gui);
 
-        QMetaObject::connectSlotsByName(MainWindow);
+        QMetaObject::connectSlotsByName(surgical_gui);
     } // setupUi
 
-    void retranslateUi(QMainWindow *MainWindow)
+    void retranslateUi(QMainWindow *surgical_gui)
     {
-        MainWindow->setWindowTitle(QApplication::translate("MainWindow", "SurgiCal", 0, QApplication::UnicodeUTF8));
+        surgical_gui->setWindowTitle(QApplication::translate("surgical_gui", "SurgiC@l", 0, QApplication::UnicodeUTF8));
 #ifndef QT_NO_TOOLTIP
-        MainWindow->setToolTip(QString());
+        surgical_gui->setToolTip(QString());
 #endif // QT_NO_TOOLTIP
 #ifndef QT_NO_TOOLTIP
-        selectFrame->setToolTip(QApplication::translate("MainWindow", "Select the frame to work with", 0, QApplication::UnicodeUTF8));
+        selectFrame->setToolTip(QApplication::translate("surgical_gui", "Select the frame to work with", 0, QApplication::UnicodeUTF8));
 #endif // QT_NO_TOOLTIP
-        selectFrame->setText(QApplication::translate("MainWindow", "Select Frame", 0, QApplication::UnicodeUTF8));
+        selectFrame->setText(QApplication::translate("surgical_gui", "Select Frame", 0, QApplication::UnicodeUTF8));
 #ifndef QT_NO_TOOLTIP
-        sendButton->setToolTip(QApplication::translate("MainWindow", "Publish the hole/ cut coordinates on the topic", 0, QApplication::UnicodeUTF8));
+        sendButton->setToolTip(QApplication::translate("surgical_gui", "Publish the hole/ cut coordinates on the topic", 0, QApplication::UnicodeUTF8));
 #endif // QT_NO_TOOLTIP
-        sendButton->setText(QApplication::translate("MainWindow", "Send Info", 0, QApplication::UnicodeUTF8));
+        sendButton->setText(QApplication::translate("surgical_gui", "Send Info", 0, QApplication::UnicodeUTF8));
 #ifndef QT_NO_TOOLTIP
-        removeHole->setToolTip(QApplication::translate("MainWindow", "Remove the selected hole", 0, QApplication::UnicodeUTF8));
+        removeHole->setToolTip(QApplication::translate("surgical_gui", "Remove the selected hole", 0, QApplication::UnicodeUTF8));
 #endif // QT_NO_TOOLTIP
-        removeHole->setText(QApplication::translate("MainWindow", "Remove", 0, QApplication::UnicodeUTF8));
+        removeHole->setText(QApplication::translate("surgical_gui", "Remove", 0, QApplication::UnicodeUTF8));
 #ifndef QT_NO_TOOLTIP
-        addHole->setToolTip(QApplication::translate("MainWindow", "Add needle hole location", 0, QApplication::UnicodeUTF8));
+        addHole->setToolTip(QApplication::translate("surgical_gui", "Add needle hole location", 0, QApplication::UnicodeUTF8));
 #endif // QT_NO_TOOLTIP
-        addHole->setText(QApplication::translate("MainWindow", "Add Hole", 0, QApplication::UnicodeUTF8));
+        addHole->setText(QApplication::translate("surgical_gui", "Add Hole", 0, QApplication::UnicodeUTF8));
 #ifndef QT_NO_TOOLTIP
-        holesList->setToolTip(QApplication::translate("MainWindow", "Info about holes", 0, QApplication::UnicodeUTF8));
-#endif // QT_NO_TOOLTIP
-#ifndef QT_NO_TOOLTIP
-        removeCut->setToolTip(QApplication::translate("MainWindow", "Remove the selected cut", 0, QApplication::UnicodeUTF8));
-#endif // QT_NO_TOOLTIP
-        removeCut->setText(QApplication::translate("MainWindow", "Remove", 0, QApplication::UnicodeUTF8));
-#ifndef QT_NO_TOOLTIP
-        holesList_2->setToolTip(QApplication::translate("MainWindow", "Info about holes", 0, QApplication::UnicodeUTF8));
+        holesList->setToolTip(QApplication::translate("surgical_gui", "Info about holes", 0, QApplication::UnicodeUTF8));
 #endif // QT_NO_TOOLTIP
 #ifndef QT_NO_TOOLTIP
-        addCut->setToolTip(QApplication::translate("MainWindow", "Specify points for the cut", 0, QApplication::UnicodeUTF8));
+        removeCut->setToolTip(QApplication::translate("surgical_gui", "Remove the selected cut", 0, QApplication::UnicodeUTF8));
 #endif // QT_NO_TOOLTIP
-        addCut->setText(QApplication::translate("MainWindow", "Add Cut", 0, QApplication::UnicodeUTF8));
+        removeCut->setText(QApplication::translate("surgical_gui", "Remove", 0, QApplication::UnicodeUTF8));
+#ifndef QT_NO_TOOLTIP
+        holesList_2->setToolTip(QApplication::translate("surgical_gui", "Info about holes", 0, QApplication::UnicodeUTF8));
+#endif // QT_NO_TOOLTIP
+#ifndef QT_NO_TOOLTIP
+        addCut->setToolTip(QApplication::translate("surgical_gui", "Specify points for the cut", 0, QApplication::UnicodeUTF8));
+#endif // QT_NO_TOOLTIP
+        addCut->setText(QApplication::translate("surgical_gui", "Add Cut", 0, QApplication::UnicodeUTF8));
     } // retranslateUi
 
 };
 
 namespace Ui {
-    class MainWindow: public Ui_MainWindow {};
+    class surgical_gui: public Ui_surgical_gui {};
 } // namespace Ui
 
 QT_END_NAMESPACE

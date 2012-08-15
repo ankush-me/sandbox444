@@ -1,10 +1,11 @@
 /** Author: Ankush Gupta
     Date  : 14th August 2012 */
 
+#include <QtGui>
 #include "SurgicalGUI.h"
 
-SurgicalGUI::SurgicalGUI(QWidget *parent) : QWidget(parent) {
-  ui.setupUi(new QtMainWindow());
+SurgicalGUI::SurgicalGUI(QWidget *parent) : QMainWindow(parent) {
+  ui.setupUi( this );
 }
 
 void SurgicalGUI::on_selectFrame_clicked() {

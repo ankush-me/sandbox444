@@ -1,4 +1,9 @@
  TEMPLATE    = app
  FORMS       = surgical_gui.ui
  HEADERS     = SurgicalGUI.h
- SOURCES     = main.cpp SurgicalGUI.cpp
+ SOURCES     = SurgicalGUI.cpp \
+               main.cpp
+
+ DESTDIR = build
+ OBJECTS_DIR = build/.obj
+ MOC_DIR = build/.moc

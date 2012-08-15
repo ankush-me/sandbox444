@@ -5,21 +5,19 @@
 #define _SURGICAL_GUI_
 
 #include "ui_surgical_gui.h"
-#include <QMainWindow>
 #include <iostream>
 
-class SurgicalGUI : public QWidget {
+class SurgicalGUI : public QMainWindow {
   Q_OBJECT
-    
+
  public:
-  SurgicalGUI(QWidget *parent = NULL);
+  SurgicalGUI(QWidget *parent = 0);
   
   private slots:
   void on_selectFrame_clicked();
 
  private:
-  //Ui::surgical_gui ui;
-  Ui_MainWindow ui;
+  Ui::surgical_gui ui;
 };
 
 #endif
