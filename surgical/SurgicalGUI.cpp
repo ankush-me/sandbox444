@@ -97,13 +97,13 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
   }
 
   if (cutting) {
-    Cut *cut = NULL;
+    Cut::Ptr cut;
     if(create_new_cut) {
       Cut::Ptr cut_ptr(new cut);
       cuts.push_back(cut_ptr);
       create_new_cut != create_new_cut;
     } 
-    cut = &(cuts.at(cuts.length() -1));
+    cut = cuts.at(cuts.length() - 1);
     cut->add_point(pt, row_idx, col_idx);
     repaint();
   }
