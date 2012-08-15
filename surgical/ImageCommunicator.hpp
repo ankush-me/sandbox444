@@ -8,11 +8,13 @@
 #include <list>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-
+#include <pcl/point_types.h>
 #include "Hole.hpp"
 #include "Cut.hpp"
+#include "mouseHandler.h"
 
 class SurgicalGUI;
+//void mouseHandler(int event, int x, int y, int flags, void* data);
 
 class ImageCommunicator {
 private:
@@ -20,6 +22,7 @@ private:
   cv::Mat _working_frame;
   std::string _window_name;
   SurgicalGUI * _gui;
+
 
 public:
   ImageCommunicator(SurgicalGUI* gui,
@@ -29,7 +32,9 @@ public:
 							  _window_name(window_name) {
     cv::namedWindow(_window_name);
     cv::imshow(_window_name, _main_frame);
+    cv::setMouseCallback(_window_name, mouseHandler, (void *) _gui);
   }
+
   void fix_frame() {}
   
   void repaint(std::list<Hole::Ptr> &holes, std::list<Cut::Ptr> &cuts) {
@@ -48,6 +53,7 @@ public:
 
     cv::imshow(_window_name, _working_frame);
   }
+  
 };
 
 #endif

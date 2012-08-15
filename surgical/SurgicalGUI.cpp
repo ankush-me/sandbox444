@@ -90,6 +90,7 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
   if (adding_hole) {
     Hole::Ptr hole_ptr(new Hole(pt, row_idx, col_idx));
     holes.push_back(hole_ptr);
+    _all_false();
     repaint();
   }
 
@@ -97,6 +98,7 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
     if (hole_selection >= 0 && hole_selection <= holes.length()) {
       holes.removeAt(hole_selection);
       repaint();
+      _all_false();
     }
   }
 
@@ -115,6 +117,7 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
   if (removing_cut) {
     if (cut_selection >= 0 && cut_selection <= cuts.length()) {
       cuts.removeAt(cut_selection);
+      _all_false();
       repaint();
     }
   }

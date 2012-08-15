@@ -205,7 +205,7 @@
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
     </widget>
-    <widget class="QCheckBox" name="attCut">
+    <widget class="QCheckBox" name="addCut">
      <property name="geometry">
       <rect>
        <x>20</x>

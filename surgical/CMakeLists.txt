@@ -106,7 +106,7 @@ set(Surgical_FORMS surgical_gui.ui)
 qt4_wrap_cpp(Surgical_HEADERS_MOC ${Surgical_HEADERS})
 qt4_wrap_ui(Surgical_FORMS_HEADERS ${Surgical_FORMS})
 
-add_executable(surgical Hole.hpp Cut.hpp
+add_executable(surgical Hole.hpp Cut.hpp mouseHandler.h mouseHandler.cpp
                         ${Surgical_SOURCES} 
 		        ${Surgical_HEADERS_MOC}
 			${Surgical_FORMS_HEADERS})
