@@ -5,6 +5,7 @@
 #define _HOLE_H_
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <pcl/point_types.h>
 
 class Hole {
@@ -22,10 +23,10 @@ class Hole {
   int inline get_row() {return _row_idx;}
   int inline get_col() {return _col_idx;}
 
-  void paint(cv::Mat &mat, cv::Scalar color=cv::Scalar(50,50,50),
-	     int radius=5) {
+  void paint(cv::Mat &mat, cv::Scalar color=cv::Scalar(50,0,0),
+	     int radius=6) {
     cv::Point center(_row_idx, _col_idx);
-    cv::circle(mat, center, radius, color);
+    cv::circle(mat, center, radius, color, CV_FILLED);
   }
 };
 

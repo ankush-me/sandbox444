@@ -59,11 +59,9 @@ void SurgicalGUI::on_removeHole_clicked() {
 
 /** Update internal state to add cuts. */
 void SurgicalGUI::on_addCut_stateChanged(int state) {
-  std::cout<<"check: "<<state<<std::endl;
   create_new_cut = (state == Qt::Checked);
-  bool prev_cut = cutting;
   _all_false(); 
-  cutting = !prev_cut;
+  cutting = (state == Qt::Checked);
 }
 
 
@@ -84,7 +82,9 @@ void SurgicalGUI::repaint() {
 
 /** PointXYZRGB PT     : is the pcl point corresponding to the pixel
                          the user clicked on.
-    (ROW_IDX, COL_IDX) : the location of the pixel. */
+    (ROW_IDX, COL_IDX) : the location of the pixel. 
+
+    This is called from the IMAGE_COMMUNICATOR to register a user click.*/
 void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
 			   int row_idx, int col_idx) {
   if (adding_hole) {
