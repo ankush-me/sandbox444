@@ -1,6 +1,12 @@
 /** Author: Ankush Gupta
     Date  : 15th August 2012. */
 
+#ifndef _NAME_LIST_MODEL_
+#define _NAME_LIST_MODEL_
+
+#include <QAbstractListModel>
+#include <QObject>
+#include <QList>
 
 /** For displaying a list of type T with a prefix string: _PREFIX.
     i.e. if the length of the list is N, then it would display
@@ -10,28 +16,20 @@
      ADAPTED from: http://qt-project.org/doc/qt-4.8/qt4-interview.html   */
 
 
-template <class T>
 class NameListModel : public QAbstractListModel {
   Q_OBJECT
 
   private:
-  /** The list to store items. */
-  QList<T> _list;
-
   /** The prefix string for displaying items. */
   std::string _prefix;
 
   public:
   NameListModel(std::string prefix_name="item", QObject *parent = 0)
     : QAbstractListModel(parent),
-      _prefix(prefix_name),
-      _list() {}
-
-  /** Returns a pointer to the list. */
-  QList<T>* inline list_ptr() { return &_list; }
+      _prefix(prefix_name) {}
 
   /** Returns the number of items in the list. */
-  int rowCount(const QModelIndex &parent = QModelIndex()) const;
+  virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
 
   /* Returns an item of data for each model index supplied by a view. */
   QVariant data(const QModelIndex &index, int role) const;
@@ -44,3 +42,4 @@ class NameListModel : public QAbstractListModel {
   
 };
 
+#endif
