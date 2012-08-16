@@ -15,7 +15,7 @@ include "NameListModel.hpp"
      ADAPTED from: http://qt-project.org/doc/qt-4.8/qt4-interview.html   */
 
 
-class HoleListModel : public NameListModel {
+class HoleListModel : virtual public NameListModel {
   private:
   /** The list to store items. */
   QList<Hole::Ptr> _list;

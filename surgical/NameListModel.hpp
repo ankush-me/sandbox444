@@ -29,7 +29,9 @@ class NameListModel : public QAbstractListModel {
       _prefix(prefix_name) {}
 
   /** Returns the number of items in the list. */
-  virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
+  virtual int rowCount(const QModelIndex &parent = QModelIndex()) const {
+    return -1;
+  }
 
   /* Returns an item of data for each model index supplied by a view. */
   QVariant data(const QModelIndex &index, int role) const;
