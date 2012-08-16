@@ -5,11 +5,13 @@
 #define _SURGICAL_GUI_
 
 #include "ui_surgical_gui.h"
+
 #include "Hole.hpp"
 #include "Cut.hpp"
+#include "ListInteractor.hpp"
+
 #include <iostream>
 #include <pcl/point_types.h>
-#include <QList>
 #include "ImageCommunicator.hpp"
 
 class SurgicalGUI : public QMainWindow {
@@ -58,10 +60,10 @@ class SurgicalGUI : public QMainWindow {
   int num_cuts;
 
   /** The specified holes.*/
-  QList< Hole::Ptr > holes;
+  ListInteractor<Hole::Ptr> holes;
 
   /** The specified cuts. */
-  QList< Cut::Ptr > cuts;
+  ListInteractor<Cut::Ptr> cuts;
 };
 
 #endif

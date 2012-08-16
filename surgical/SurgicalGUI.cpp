@@ -2,25 +2,26 @@
     Date  : 14th August 2012 */
 
 #include "SurgicalGUI.h"
-#include "ImageCommunicator.hpp"
 
 /** Default constructor. */
 SurgicalGUI::SurgicalGUI(QWidget *parent) : QMainWindow(parent),
 					    //_ros_comm(this),
 					    _image_comm(this),
 					    create_new_cut(true),
-					    cutting(false), removing_cut(false),
-					    adding_hole(false), removing_hole(false),
+					    cutting(false),
+					    removing_cut(false),
+					    adding_hole(false),
+					    removing_hole(false),
 					    num_holes(0), num_cuts(0),
-					    holes(), cuts(),
 					    hole_selection(-1),
-					    cut_selection(-1)
+					    cut_selection(-1),
+					    holes("Hole"),
+					    cuts("Cut")
 {
   ui.setupUi( this );
-  //ui.holesList->setModel(holes.get());
-  //ui.cutsList->setModel(cuts.get());
+  holes.set_widget(ui.holesList);
+  cuts.set_widget(ui.cutsList);
 }
-
 
 /** Falsifies all the booles. */
 void SurgicalGUI::_all_false() {
@@ -49,6 +50,7 @@ void SurgicalGUI::on_addHole_clicked() {
   adding_hole = true;
 }
 
+
 /** Update internal state to remove holes. */
 void SurgicalGUI::on_removeHole_clicked() {
   std::cout<<"remove hole"<<std::endl;
@@ -73,8 +75,8 @@ void SurgicalGUI::on_removeCut_clicked() {
 }
 
 void SurgicalGUI::repaint() {
-  std::list<Hole::Ptr> hole_lst = holes.toStdList();
-  std::list<Cut::Ptr>  cut_lst  = cuts.toStdList();
+  std::list<Hole::Ptr> hole_lst = holes.get_std_list();
+  std::list<Cut::Ptr>  cut_lst  = cuts.get_std_list();
 
   _image_comm.repaint(hole_lst, cut_lst);
 }
@@ -89,14 +91,15 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
 			   int row_idx, int col_idx) {
   if (adding_hole) {
     Hole::Ptr hole_ptr(new Hole(pt, row_idx, col_idx));
-    holes.push_back(hole_ptr);
+    holes.add_item(hole_ptr);
     _all_false();
     repaint();
   }
 
   if (removing_hole) {
-    if (hole_selection >= 0 && hole_selection <= holes.length()) {
-      holes.removeAt(hole_selection);
+    if (hole_selection >= 0
+	&& hole_selection <= holes.length()) {
+      holes.remove_item(hole_selection);
       repaint();
       _all_false();
     }
@@ -106,7 +109,7 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
     Cut::Ptr cut;
     if(create_new_cut) {
       Cut::Ptr cut_ptr(new Cut);
-      cuts.push_back(cut_ptr);
+      cuts.add_item(cut_ptr);
       create_new_cut = !create_new_cut;
     }
     cut = cuts.last();
@@ -116,7 +119,7 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
 
   if (removing_cut) {
     if (cut_selection >= 0 && cut_selection <= cuts.length()) {
-      cuts.removeAt(cut_selection);
+      cuts.remove_item(cut_selection);
       _all_false();
       repaint();
     }

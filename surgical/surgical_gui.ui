@@ -120,7 +120,7 @@
       <string>Add Hole</string>
      </property>
     </widget>
-    <widget class="QListView" name="holesList">
+    <widget class="QListWidget" name="holesList">
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -128,6 +128,12 @@
        <width>101</width>
        <height>91</height>
       </rect>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
      <property name="minimumSize">
       <size>
@@ -140,9 +146,6 @@
        <width>101</width>
        <height>91</height>
       </size>
-     </property>
-     <property name="toolTip">
-      <string>Info about holes</string>
      </property>
     </widget>
    </widget>
@@ -177,34 +180,6 @@
       <string>Remove</string>
      </property>
     </widget>
-    <widget class="QListView" name="cutsList">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>40</y>
-       <width>101</width>
-       <height>91</height>
-      </rect>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>101</width>
-       <height>91</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>101</width>
-       <height>91</height>
-      </size>
-     </property>
-     <property name="toolTip">
-      <string>Info about holes</string>
-     </property>
-     <property name="editTriggers">
-      <set>QAbstractItemView::NoEditTriggers</set>
-     </property>
-    </widget>
     <widget class="QCheckBox" name="addCut">
      <property name="geometry">
       <rect>
@@ -216,6 +191,22 @@
      </property>
      <property name="text">
       <string>Add Cut</string>
+     </property>
+    </widget>
+    <widget class="QListWidget" name="cutsList">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>40</y>
+       <width>101</width>
+       <height>91</height>
+      </rect>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
     </widget>
    </widget>
