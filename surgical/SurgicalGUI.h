@@ -35,9 +35,6 @@ class SurgicalGUI : public QMainWindow {
 
  private:
 
-  int hole_selection;
-  int cut_selection;
-
   void _all_false();
   void repaint();
 
@@ -52,12 +49,6 @@ class SurgicalGUI : public QMainWindow {
 
   /** True if the user is specifying a cut on the screen. */
   bool create_new_cut, cutting, removing_cut, adding_hole, removing_hole;
-
-  /** Number of holes specified by the user. */
-  int num_holes;
-
-  /** Number of cuts specified by the user. */
-  int num_cuts;
 
   /** The specified holes.*/
   ListInteractor<Hole::Ptr> holes;

@@ -12,9 +12,6 @@ SurgicalGUI::SurgicalGUI(QWidget *parent) : QMainWindow(parent),
 					    removing_cut(false),
 					    adding_hole(false),
 					    removing_hole(false),
-					    num_holes(0), num_cuts(0),
-					    hole_selection(-1),
-					    cut_selection(-1),
 					    holes("Hole"),
 					    cuts("Cut")
 {
@@ -53,11 +50,14 @@ void SurgicalGUI::on_addHole_clicked() {
 
 /** Update internal state to remove holes. */
 void SurgicalGUI::on_removeHole_clicked() {
-  std::cout<<"remove hole"<<std::endl;
-  _all_false();
-  removing_hole = true;
+  int hole_selection = holes.get_widget_ptr()->currentRow();
+  if (hole_selection >= 0
+      && hole_selection <= holes.length()) {
+    holes.remove_item(hole_selection);
+    _all_false();
+    repaint();
+  }
 }
-
 
 /** Update internal state to add cuts. */
 void SurgicalGUI::on_addCut_stateChanged(int state) {
@@ -69,9 +69,12 @@ void SurgicalGUI::on_addCut_stateChanged(int state) {
 
 /** Update internal state to remove cuts. */
 void SurgicalGUI::on_removeCut_clicked() {
-  std::cout<<"remove cut"<<std::endl;
-  _all_false();
-  removing_cut = true;
+  int cut_selection = cuts.get_widget_ptr()->currentRow();
+  if (cut_selection >= 0 && cut_selection <= cuts.length()) {
+    cuts.remove_item(cut_selection);
+    _all_false();
+    repaint();
+  }
 }
 
 void SurgicalGUI::repaint() {
@@ -96,15 +99,6 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
     repaint();
   }
 
-  if (removing_hole) {
-    if (hole_selection >= 0
-	&& hole_selection <= holes.length()) {
-      holes.remove_item(hole_selection);
-      repaint();
-      _all_false();
-    }
-  }
-
   if (cutting) {
     Cut::Ptr cut;
     if(create_new_cut) {
@@ -115,13 +109,5 @@ void SurgicalGUI::interact(pcl::PointXYZRGB* pt,
     cut = cuts.last();
     cut->add_point(pt, row_idx, col_idx);
     repaint();
-  }
-
-  if (removing_cut) {
-    if (cut_selection >= 0 && cut_selection <= cuts.length()) {
-      cuts.remove_item(cut_selection);
-      _all_false();
-      repaint();
-    }
   }
 }

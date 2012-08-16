@@ -17,8 +17,6 @@ public:
   ListInteractor(std::string prefix="item") : _prefix(prefix),
 					      _list(),
 					      _list_widget() { }
-  // void add_item(T item);
-  //void remove_item(int idx);
 
   /** Add an item to the internal list as well as display list. */
   void add_item(T item) {
