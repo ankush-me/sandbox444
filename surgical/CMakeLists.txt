@@ -17,13 +17,20 @@ find_package(PCL REQUIRED)
 find_package(Qt4 REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+# Set paths for CV_BRIDGE
+set(CV_BRIDGE_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/vision_opencv/cv_bridge")
+set(CV_BRIDGE_INCLUDE_DIRS "${CV_BRIDGE_PATH}/include")
+set(CV_BRIDGE_LIBRARY_DIRS "${CV_BRIDGE_PATH}/lib")
+
 include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
 		    ${CMAKE_SOURCE_DIR}
-		    ${CMAKE_CURRENT_BINARY_DIR})
+		    ${CMAKE_SOURCE_DIR}/utils
+		    ${CMAKE_CURRENT_BINARY_DIR}
+		    ${CV_BRIDGE_INCLUDE_DIRS}) )
 
 link_directories(${PCL_LIBRARY_DIRS}
                  ${CMAKE_SOURCE_DIR}
-		)
+		 ${CV_BRIDGE_LIBRARY_DIRS}))
 
 add_definitions(${PCL_DEFINITIONS})
 add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
@@ -38,8 +45,13 @@ set(Surgical_FORMS surgical_gui.ui)
 qt4_wrap_cpp(Surgical_HEADERS_MOC ${Surgical_HEADERS})
 qt4_wrap_ui(Surgical_FORMS_HEADERS ${Surgical_FORMS})
 
-#add_library(lst ListInteractor.cpp)
-#target_link_libraries(lst ${QT_LIBRARIES})
+
+add_subdirectory(utils)
+
+add_library(cloudOps cloud_ops.cpp)
+target_link_libraries(cloudOps ${PCL_LIBRARIES} ${ROS_LIBRARIES}
+                               ${OpenCV_LIBS} cv_bridge utils)
+
 
 add_executable(surgical Hole.hpp Cut.hpp mouseHandler.h
                         mouseHandler.cpp
@@ -48,7 +60,7 @@ add_executable(surgical Hole.hpp Cut.hpp mouseHandler.h
 		        ${Surgical_HEADERS_MOC}
 			${Surgical_FORMS_HEADERS})
 
-target_link_libraries(surgical ${PCL_LIBRARIES}
+target_link_libraries(surgical ${PCL_LIBRARIES} cloudOps
                                ${OpenCV_LIBS}
 			       ${QT_LIBRARIES})
 
