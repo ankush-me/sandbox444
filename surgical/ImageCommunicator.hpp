@@ -48,7 +48,7 @@ private:
   bool _is_fixed;
 
   /** Called when this recieves a new point-cloud. */
-  void cloudCB(const sensor_msgs::PointCloud2ConstPtr& cloud_ros) {
+  void cloudCB(const sensor_msgs::PointCloud2::ConstPtr& cloud_ros) {
     if (!_is_fixed) {
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr
 	cloud_pcl(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -63,14 +63,17 @@ public:
 		    std::string cloud_topic="camera/depth_registered/points",
 		    std::string window_name="SurgiC@l") : _gui(NULL),
 							  _nh_ptr(nh_ptr),
-                                                          _main_frame(cv::Mat::zeros(480, 640, CV_32FC3)),
+							  _main_frame(cv::Mat::zeros(480,
+										     640,
+										     CV_32FC3)),
 							  _working_frame(),
 							  _is_fixed(false),
 							  _window_name(window_name),
-							  _cloud_topic(cloud_topic) {
-    _cloud_sub = _nh_ptr->subscribe(_cloud_topic, 1, cloudCB);
-    cv::namedWindow(_window_name);
-    cv::imshow(_window_name, _main_frame);
+							  _cloud_topic(cloud_topic)  {
+  _cloud_sub = _nh_ptr->subscribe(_cloud_topic, 1,
+				  &ImageCommunicator::cloudCB, this);
+  cv::namedWindow(_window_name);
+  cv::imshow(_window_name, _main_frame);
   }
 
   void set_gui(SurgicalGUI * gui) {
@@ -84,6 +87,7 @@ public:
 
   /** Arrests the last frame as the permanent one. */
   void fix_frame() { _is_fixed = true; }
+
 
   /** Refreshes the display and paints the HOLES and CUTS. */
   void repaint(std::list<Hole::Ptr> &holes, std::list<Cut::Ptr> &cuts) {
