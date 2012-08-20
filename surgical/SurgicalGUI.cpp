@@ -4,9 +4,10 @@
 #include "SurgicalGUI.h"
 
 /** Default constructor. */
-SurgicalGUI::SurgicalGUI(QWidget *parent) : QMainWindow(parent),
+SurgicalGUI::SurgicalGUI(ImageCommunicator * img_comm,
+			 QWidget *parent) : QMainWindow(parent),
 					    //_ros_comm(this),
-					    _image_comm(this),
+					    _image_comm(img_comm),
 					    create_new_cut(true),
 					    cutting(false),
 					    removing_cut(false),
@@ -15,6 +16,7 @@ SurgicalGUI::SurgicalGUI(QWidget *parent) : QMainWindow(parent),
 					    holes("Hole"),
 					    cuts("Cut")
 {
+  _image_comm->set_gui(this);
   ui.setupUi( this );
   holes.set_widget(ui.holesList);
   cuts.set_widget(ui.cutsList);
@@ -32,7 +34,7 @@ void SurgicalGUI::_all_false() {
     interact with it. */
 void SurgicalGUI::on_selectFrame_clicked() {
   std::cout<<"frame"<<std::cout;
-  _image_comm.fix_frame();
+  _image_comm->fix_frame();
 }
 
 /** Ask the ros_communicator to publish the info on the topic. */
@@ -81,7 +83,7 @@ void SurgicalGUI::repaint() {
   std::list<Hole::Ptr> hole_lst = holes.get_std_list();
   std::list<Cut::Ptr>  cut_lst  = cuts.get_std_list();
 
-  _image_comm.repaint(hole_lst, cut_lst);
+  _image_comm->repaint(hole_lst, cut_lst);
 }
 
 

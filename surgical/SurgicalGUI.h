@@ -18,7 +18,7 @@ class SurgicalGUI : public QMainWindow {
   Q_OBJECT
 
  public:
-  SurgicalGUI(QWidget *parent = 0);
+  SurgicalGUI(ImageCommunicator * img_comm, QWidget *parent = 0);
   void interact(pcl::PointXYZRGB* pt, int row_idx, int col_idx);
 
  private slots:
@@ -42,7 +42,7 @@ class SurgicalGUI : public QMainWindow {
   //ros_communicator _ros_comm;
 
   /**  A class which handles the pcl stuff. */
-  ImageCommunicator _image_comm;
+  ImageCommunicator* _image_comm;
 
   /** The ui specified by QtDesigner. */
   Ui::surgical_gui ui;
