@@ -21,5 +21,13 @@ int main(int argc, char *argv[]) {
   SurgicalGUI gui(&img_comm);
 
   gui.show();
-  return app.exec();
+
+  ros::Rate timer(1000);
+  while (ros::ok()) {
+    ros::spinOnce();
+    app.processEvents();
+    timer.sleep();
+  }
+  app.quit();
+  return 0;
 }

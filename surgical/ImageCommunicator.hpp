@@ -18,6 +18,8 @@
 #include "mouseHandler.h"
 #include "utils/utils_pcl.h"
 
+#include <iostream>
+
 class SurgicalGUI;
 
 class ImageCommunicator {
@@ -61,7 +63,7 @@ private:
 
 public:
   ImageCommunicator(ros::NodeHandle * nh_ptr,
-		    std::string cloud_topic="camera/depth_registered/points",
+		    std::string cloud_topic="/camera/depth_registered/points",
 		    std::string window_name="SurgiC@l") : _gui(NULL),
 							  _nh_ptr(nh_ptr),
 							  _cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(480,640)),
