@@ -29,6 +29,9 @@ private:
   /** Subscriber for getting new point clouds. */
   ros::Subscriber  _cloud_sub;
 
+  /** The latest point-cloud recieved. */
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloud_ptr;
+
   /** The main frame is updated, everytime when a new frame is received. */
   cv::Mat _main_frame;
 
@@ -50,10 +53,8 @@ private:
   /** Called when this recieves a new point-cloud. */
   void cloudCB(const sensor_msgs::PointCloud2::ConstPtr& cloud_ros) {
     if (!_is_fixed) {
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr
-	cloud_pcl(new pcl::PointCloud<pcl::PointXYZRGB>);
-      pcl::fromROSMsg(*cloud_ros, *cloud_pcl);
-      _main_frame = toCVMatImage(cloud_pcl);
+      pcl::fromROSMsg(*cloud_ros, *_cloud_ptr);
+      _main_frame = toCVMatImage(_cloud_ptr);
       cv::imshow(_window_name, _main_frame);
     }
   }
@@ -63,6 +64,7 @@ public:
 		    std::string cloud_topic="camera/depth_registered/points",
 		    std::string window_name="SurgiC@l") : _gui(NULL),
 							  _nh_ptr(nh_ptr),
+							  _cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(480,640)),
 							  _main_frame(cv::Mat::zeros(480,
 										     640,
 										     CV_32FC3)),
@@ -84,6 +86,9 @@ public:
   SurgicalGUI* get_gui() {
     return _gui;
   }
+
+  /** Return the pointer to the last point-cloud recieved. */
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr get_cloud_ptr() {return _cloud_ptr;}
 
   /** Arrests the last frame as the permanent one. */
   void fix_frame() { _is_fixed = true; }

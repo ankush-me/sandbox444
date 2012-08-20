@@ -22,6 +22,11 @@ SurgicalGUI::SurgicalGUI(ImageCommunicator * img_comm,
   cuts.set_widget(ui.cutsList);
 }
 
+/** Return the image communicator. */
+ImageCommunicator* SurgicalGUI::get_image_communicator() {
+  return _image_comm;
+}
+
 /** Falsifies all the booles. */
 void SurgicalGUI::_all_false() {
   adding_hole   = false;

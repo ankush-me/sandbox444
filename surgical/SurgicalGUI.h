@@ -20,7 +20,8 @@ class SurgicalGUI : public QMainWindow {
  public:
   SurgicalGUI(ImageCommunicator * img_comm, QWidget *parent = 0);
   void interact(pcl::PointXYZRGB* pt, int row_idx, int col_idx);
-
+  ImageCommunicator* get_image_communicator();
+  
  private slots:
   /** these are call-backs for the "clicked" signal
       of the pushbuttons in the gui. */
