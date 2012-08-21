@@ -1,0 +1,15 @@
+<package>
+  <description brief="surgical_msgs">
+
+     surgical_msgs
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/surgical_msgs</url>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+
