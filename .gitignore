@@ -3,3 +3,9 @@ build/*
 *~*
 .metadata/*
 */build/*
+bin/*
+*/bin/*
+msg_gen/*
+*/msg_gen/*
+lib/*
+*/lib/*

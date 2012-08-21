@@ -9,21 +9,35 @@
 #include "Hole.hpp"
 #include "Cut.hpp"
 #include "ListInteractor.hpp"
+#include "ImageCommunicator.hpp"
+#include "ROSCommunicator.hpp"
+
 
 #include <iostream>
 #include <pcl/point_types.h>
-#include "ImageCommunicator.hpp"
+
 
 class SurgicalGUI : public QMainWindow {
   Q_OBJECT
 
  public:
-  SurgicalGUI(ImageCommunicator * img_comm, QWidget *parent = 0);
+  /** Constructor
+      IMG_COMM : The image communicator, which handles the communication
+                 with ros for displaying the point-cloud as a flat image
+		 and the mouse-event callbacks.
+      PARENT   : The Qt parent (usually NULL).*/
+  SurgicalGUI(ImageCommunicator * img_comm,
+	      ROSCommunicator * ros_comm,
+	      QWidget *parent = 0);
+
+  /**  Called by the image-communicator to handle user-clicks. */
   void interact(pcl::PointXYZRGB* pt, int row_idx, int col_idx);
+
+  /** Returns the image-communicator it is bound to. */
   ImageCommunicator* get_image_communicator();
-  
+
  private slots:
-  /** these are call-backs for the "clicked" signal
+  /** These are call-backs for the "clicked" signal
       of the pushbuttons in the gui. */
   void on_selectFrame_clicked();
   void on_sendButton_clicked();
@@ -39,10 +53,11 @@ class SurgicalGUI : public QMainWindow {
   void _all_false();
   void repaint();
 
-  /**  A class which communicates ros/ handles other ros stuff. */
-  //ros_communicator _ros_comm;
+  /**  A class which communicates with ros: publishes the HOLES and CUTS,
+       i.e. spits out the output. */
+  ROSCommunicator* _ros_comm;
 
-  /**  A class which handles the pcl stuff. */
+  /**  A class which handles the ros<-->pcl stuff. */
   ImageCommunicator* _image_comm;
 
   /** The ui specified by QtDesigner. */
