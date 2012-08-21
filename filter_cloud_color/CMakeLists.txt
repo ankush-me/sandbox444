@@ -4,6 +4,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(Filter)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
+set(SANDBOX444_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 #-------------------------- Generally useful function ------------------
@@ -67,8 +68,12 @@ set(CV_BRIDGE_LIBRARY_DIRS "${CV_BRIDGE_PATH}/lib")
 set(OpenCV_DIR "/opt/ros/$ENV{ROS_DISTRO}/share/OpenCV")
 find_package(OpenCV REQUIRED)
 
+set(LOG4CPLUS_DIR ${SANDBOX444_SOURCE_DIR}/lib/log4cplus-1.1.0-rc3)
+set(LOG4CPLUS_INCLUDE_DIRS ${LOG4CPLUS_DIR}/include ${CMAKE_BINARY_DIR}/include)
+set(LOG4CPLUS_LIBRARY "log4cplus")
+
 # EXTERNAL LIBRARIES
-find_package(Boost REQUIRED)
+find_package(Boost COMPONENTS program_options  REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
  # find the ros stuff: this sets $ROS_INCLUDE_DIRS and $ROS_LIBRARIES
@@ -96,11 +101,17 @@ set(tf_libs "libtf.so")
 find_libraries(tf_libs TF_LIBRARY_DIRS TF_LIBRARIES)
 
 add_subdirectory(src)
+add_subdirectory(lib)
 
 add_executable(test test.cpp)
 target_link_libraries(test ${PCL_LIBRARIES}
                            ${OpenCV_LIBS} cv_bridge
 			   FilterWriter cloudOps utils)
 
+add_executable(find_color_points src/color_point_finder.cpp)
+target_link_libraries(find_color_points ${PCL_LIBRARIES}
+                                        ${ROS_LIBRARIES}  
+					cloudOps utils
+					${Boost_LIBRARIES})
 #############################################################
  
