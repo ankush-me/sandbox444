@@ -34,6 +34,9 @@ private:
   /** The latest point-cloud recieved. */
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloud_ptr;
 
+  /** The latest point-cloud recieved [ROS FORMAT]. */
+  sensor_msgs::PointCloud2::ConstPtr _cloud_ptr_ros;
+
   /** The main frame is updated, everytime when a new frame is received. */
   cv::Mat _main_frame;
 
@@ -55,6 +58,7 @@ private:
   /** Called when this recieves a new point-cloud. */
   void cloudCB(const sensor_msgs::PointCloud2::ConstPtr& cloud_ros) {
     if (!_is_fixed) {
+      _cloud_ptr_ros = cloud_ros;
       pcl::fromROSMsg(*cloud_ros, *_cloud_ptr);
       _main_frame = toCVMatImage(_cloud_ptr);
       cv::imshow(_window_name, _main_frame);
@@ -67,6 +71,7 @@ public:
 		    std::string window_name="SurgiC@l") : _gui(NULL),
 							  _nh_ptr(nh_ptr),
 							  _cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(480,640)),
+							  _cloud_ptr_ros(new sensor_msgs::PointCloud2),
 							  _main_frame(cv::Mat::zeros(480,
 										     640,
 										     CV_32FC3)),
@@ -91,6 +96,9 @@ public:
 
   /** Return the pointer to the last point-cloud recieved. */
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr get_cloud_ptr() {return _cloud_ptr;}
+
+  /** Return the pointer to the last point-cloud recieved [ROS FORMAT]. */
+  sensor_msgs::PointCloud2::ConstPtr get_cloud_ptr_ros() {return _cloud_ptr_ros;}
 
   /** Arrests the last frame as the permanent one. */
   void fix_frame() { _is_fixed = true; }

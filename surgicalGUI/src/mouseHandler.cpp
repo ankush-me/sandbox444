@@ -26,7 +26,7 @@ void mouseHandler(int event, int x, int y, int flags, void* data) {
 	     && ( (0 <= y_new) && (y_new < cloud_ptr->height)) ) {
 	  pcl::PointXYZRGB pt = cloud_ptr->at(x_new,y_new);
 	  if (pointIsFinite(pt)) {
-	    gui->interact(&pt, x, y);
+	    gui->interact(&pt, x_new, y_new);
 	    return;
 	  }
 	}

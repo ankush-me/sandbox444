@@ -3,9 +3,16 @@
 
 #include "Hole.hpp"
 #include "Cut.hpp"
+
 #include <geometry_msgs/Point.h>
+
+#include <surgical_msgs/Hole.h>
+#include <surgical_msgs/Cut.h>
 #include <surgical_msgs/InitInfo.h>
+
 #include <pcl/point_types.h>
+
+
 
 class ROSCommunicator {
 private:
@@ -33,12 +40,19 @@ public:
   }
 
   /** Publishes the info. */
-  void publish(std::list<Hole::Ptr> &holes, std::list<Cut::Ptr> &cuts) {
+  void publish(std::list<Hole::Ptr> &holes,
+	       std::list<Cut::Ptr> &cuts,
+	         sensor_msgs::PointCloud2::ConstPtr cloud_ptr) {
     surgical_msgs::InitInfo info;
+    info.cloud = *cloud_ptr;
 
     std::list<Hole::Ptr>::iterator holes_iter;
     for (holes_iter = holes.begin(); holes_iter != holes.end(); holes_iter++) {
-      info.holes.push_back( toROSPoint((*holes_iter)->get_position()) );
+      surgical_msgs::Hole hole;
+      hole.pt = toROSPoint((*holes_iter)->get_position());
+      hole.x_idx = (*holes_iter)->get_row();
+      hole.y_idx = (*holes_iter)->get_col();
+      info.holes.push_back( hole );
     }
 
     std::list<Cut::Ptr>::iterator cuts_iter;
@@ -46,7 +60,11 @@ public:
       surgical_msgs::Cut cut;
       std::vector<Hole::Ptr> holes = (*cuts_iter)->get_nodes();
       for (int i = 0; i < holes.size(); i += 1) {
-	cut.nodes.push_back(toROSPoint( holes[i]->get_position()) );
+	surgical_msgs::Hole hole;
+	hole.pt = toROSPoint(holes[i]->get_position());
+	hole.x_idx = holes[i]->get_row();
+	hole.y_idx = holes[i]->get_col();
+	cut.nodes.push_back( hole );
       }
       info.cuts.push_back(cut);
     }
