@@ -18,6 +18,8 @@ class Cut {
 
   typedef boost::shared_ptr<Cut> Ptr;
 
+  std::vector<Hole::Ptr> inline get_nodes() {return _pts;}
+
   void inline add_point(pcl::PointXYZRGB *pt, int row, int col) {
     Hole::Ptr support_pt(new Hole(pt, row, col));
     _pts.push_back(support_pt);

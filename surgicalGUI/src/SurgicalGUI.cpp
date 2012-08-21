@@ -5,8 +5,9 @@
 
 /** Default constructor. */
 SurgicalGUI::SurgicalGUI(ImageCommunicator * img_comm,
+			 ROSCommunicator * ros_comm,
 			 QWidget *parent) : QMainWindow(parent),
-					    //_ros_comm(this),
+					    _ros_comm(ros_comm),
 					    _image_comm(img_comm),
 					    create_new_cut(true),
 					    cutting(false),
@@ -38,14 +39,15 @@ void SurgicalGUI::_all_false() {
 /** Ask the image communicator to fix the frame, so that user can
     interact with it. */
 void SurgicalGUI::on_selectFrame_clicked() {
-  std::cout<<"frame"<<std::cout;
   _image_comm->fix_frame();
 }
 
 /** Ask the ros_communicator to publish the info on the topic. */
 void SurgicalGUI::on_sendButton_clicked() {
-  std::cout<<"send"<<std::endl;
-  //_ros_comm.publish_info();
+  std::list<Hole::Ptr> hole_lst = holes.get_std_list();
+  std::list<Cut::Ptr>  cut_lst  = cuts.get_std_list();
+ 
+  _ros_comm->publish(hole_lst, cut_lst, _image_comm->get_cloud_ptr_ros());
 }
 
 /** Update internal state to add holes. */

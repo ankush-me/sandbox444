@@ -16,13 +16,14 @@ int main(int argc, char *argv[]) {
   ros::NodeHandle nh;
 
   ImageCommunicator img_comm(&nh);
+  ROSCommunicator ros_comm(&nh);
 
   QApplication app(argc, argv);  
-  SurgicalGUI gui(&img_comm);
+  SurgicalGUI gui(&img_comm, &ros_comm);
 
   gui.show();
 
-  ros::Rate timer(1000);
+  ros::Rate timer(100);
   while (ros::ok()) {
     ros::spinOnce();
     app.processEvents();

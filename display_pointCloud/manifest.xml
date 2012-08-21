@@ -1,0 +1,18 @@
+<package>
+  <description brief="display_pointCloud">
+
+     display_pointCloud
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/display_pointCloud</url>
+  <depend package="roscpp"/>
+  <depend package="pcl"/>
+  <depend package="sensor_msgs"/>
+  <depend package="surgical_msgs"/>
+
+</package>
+
+

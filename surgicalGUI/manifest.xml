@@ -1,0 +1,19 @@
+<package>
+  <description brief="surgicalGUI">
+
+     surgicalGUI
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/surgicalGUI</url>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+  <depend package="surgical_msgs"/>
+  <depend package="opencv2"/>
+  <depend package="pcl"/>
+  <depend package="cv_bridge"/>
+  <depend package="geometry_msgs"/>
+
+</package>
