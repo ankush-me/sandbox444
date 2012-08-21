@@ -56,7 +56,7 @@ private:
   bool _is_fixed;
 
   /** Called when this recieves a new point-cloud. */
-  void cloudCB(const sensor_msgs::PointCloud2::ConstPtr& cloud_ros) {
+  void cloudCB(const sensor_msgs::PointCloud2::ConstPtr cloud_ros) {
     if (!_is_fixed) {
       _cloud_ptr_ros = cloud_ros;
       pcl::fromROSMsg(*cloud_ros, *_cloud_ptr);
