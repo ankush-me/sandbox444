@@ -160,7 +160,7 @@ int main (int argc, char* argv[]) {
     ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
 
     if (LocalConfig::debugging)
-      std::cout<<"Debug 1"<<std::endl;    
+      std::cout<<"Before filtering."<<std::endl;    
     
     cascader.filter(cloud_pcl, cloud_pcl_filtered);
 
@@ -174,7 +174,7 @@ int main (int argc, char* argv[]) {
     viewer.showCloud(pc2);
 
     if (LocalConfig::debugging)
-      std::cout<<"Debug 2"<<std::endl;    
+      std::cout<<"After filtering."<<std::endl;    
 
     //sensor_msgs::PointCloud2 cloud_ros_filtered;
     //pcl::toROSMsg(*cloud_pcl_filtered, cloud_ros_filtered);
