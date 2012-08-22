@@ -61,27 +61,31 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 /*
   Append filters to your cascader
   Fix: Issue with pointers
-
-void createFilter (filter_cascader &cascader) {
-  downsample_wrapper downsampler(LocalConfig::dsRatio);
-  hueFilter_wrapper hue_filter;
-  removeOutliers_wrapper outlier_remover;
-
-  // Maybe isolate only some parts of the point cloud?
-
-
-  hue_filter.setMinHue(LocalConfig::minH);
-  hue_filter.setMaxHue(LocalConfig::maxH);
-  hue_filter.setMaxSat(LocalConfig::maxS);
-  hue_filter.setMinSat(LocalConfig::minS);
-  hue_filter.setMaxVal(LocalConfig::maxV);
-  hue_filter.setMinVal(LocalConfig::minV);
-  
-  cascader.appendFilter(&downsampler);
-  //cascader.appendFilter(&hue_filter);
-  //cascader.appendFilter(&outlier_remover);
-}
 */
+void createFilter (filter_cascader &cascader) {
+  boost::shared_ptr<downsample_wrapper>  downsampler (new downsample_wrapper());
+  boost::shared_ptr<hueFilter_wrapper> hue_filter (new hueFilter_wrapper());
+  boost::shared_ptr<removeOutliers_wrapper> outlier_remover (new removeOutliers_wrapper());
+
+  // Maybe isolate only some parts of the point 
+
+  if (LocalConfig::downsample) {
+    downsampler->setSize(LocalConfig::downsample);
+    cascader.appendFilter(downsampler);
+  }
+   
+  hue_filter->setMinHue(LocalConfig::minH);
+  hue_filter->setMaxHue(LocalConfig::maxH);
+  hue_filter->setMaxSat(LocalConfig::maxS);
+  hue_filter->setMinSat(LocalConfig::minS);
+  hue_filter->setMaxVal(LocalConfig::maxV);
+  hue_filter->setMinVal(LocalConfig::minV);
+  
+  cascader.appendFilter(hue_filter);
+  
+  cascader.appendFilter(outlier_remover);
+}
+
 template <typename vectype>
 void makeIntoOne (std::vector< std::vector <vectype> > *in, std::vector <vectype> *out) {
   for (int i = 0; i < in->size(); i++) {
@@ -105,9 +109,17 @@ int main (int argc, char* argv[]) {
   //  nh.advertise<sensor_msgs::PointCloud2>
   //  (LocalConfig::camNS + "depth_registered/filtered_points", 5);
 
-  filter_cascader cascader;
+  if (LocalConfig::debugging)
+    std::cout<<"Setting up the filter."<<std::endl;
 
+  filter_cascader cascader;
+  createFilter(cascader);
+
+  if (LocalConfig::debugging)
+    std::cout<<"Finished setting up the filter."<<std::endl;
+  
   ////////// Setting up the filter ///////////////
+  /* 
   if (LocalConfig::debugging)
     std::cout<<LocalConfig::downsample<<std::endl;
 
@@ -126,7 +138,11 @@ int main (int argc, char* argv[]) {
   cascader.appendFilter(&downsampler);
   cascader.appendFilter(&hue_filter);
   cascader.appendFilter(&outlier_remover);
+  */
   ////////////////////////////////////////////////
+
+  if (LocalConfig::debugging)
+    std::cout<<"Waiting for the first message."<<std::endl;
 
   while (!pending) {
     ros::spinOnce();
@@ -134,6 +150,10 @@ int main (int argc, char* argv[]) {
     if (!ros::ok()) 
       throw std::runtime_error("caught signal while waiting for first message");
   }
+
+  if (LocalConfig::debugging)
+    std::cout<<"First message found. Setting up viewer and starting filters."<<std::endl;
+
   pcl::visualization::CloudViewer viewer ("Visualizer");
 
   while (ros::ok()) {        

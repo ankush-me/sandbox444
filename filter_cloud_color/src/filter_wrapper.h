@@ -4,6 +4,8 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 
+#include <boost/shared_ptr.hpp>
+
 #include "utils/utils_pcl.h"
 #include "cloud_ops.h"
 
@@ -272,31 +274,31 @@ public:
 
 /** Sequentially applies filters given in the input. */
 class filter_cascader : public filter_wrapper<ColorPoint> {
-  std::vector<filter_wrapper<ColorPoint>* > *_filters;
+  std::vector<boost::shared_ptr < filter_wrapper <ColorPoint> > > *_filters;
 
 public:
  filter_cascader() {
     _filters =
-    new std::vector<filter_wrapper<ColorPoint>* >;
+      new std::vector<boost::shared_ptr <filter_wrapper <ColorPoint> > >;
   }
   
-  filter_cascader(std::vector<filter_wrapper<ColorPoint>* > *filters) {
+ filter_cascader(std::vector< boost::shared_ptr <filter_wrapper <ColorPoint> > > *filters) {
     *_filters = *filters;
   }
 
   /** Clears the list of the stored filters. */
   inline void removeAll () {
     _filters =
-      new std::vector<filter_wrapper<ColorPoint>* >;
+      new std::vector< boost::shared_ptr < filter_wrapper<ColorPoint> > >;
   }
 
   /** Appends a filter onto the cascading list. */
-  inline void appendFilter(filter_wrapper<ColorPoint>* filter) {
+  inline void appendFilter(boost::shared_ptr < filter_wrapper <ColorPoint> > filter) {
     _filters->push_back(filter);
   }
 
   /** Returns an iterator to the filters (from the beginning). */
-  inline std::vector<filter_wrapper<ColorPoint>* >::iterator getFilterIter() {
+  inline std::vector< boost::shared_ptr < filter_wrapper <ColorPoint> > >::iterator getFilterIter() {
     return _filters->begin();
   }
 
