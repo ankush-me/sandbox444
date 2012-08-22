@@ -8,12 +8,13 @@
 #include <surgical_msgs/Cut.h>
 #include <geometry_msgs/Point.h>
 
-#include <vector.h>
+#include <vector>
 #include <math.h>
 
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>
 #include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 
 struct HSV {
@@ -37,7 +38,7 @@ struct HSVInfo {
   /** The standard deviations of the H,S,V, values. */
   float h_std, s_std, v_std;
 
-  typedef boost::shared_ptr<HSV> Ptr;
+  typedef boost::shared_ptr<HSVInfo> Ptr;
 
   /* Constructor. */
   HSVInfo() {
@@ -60,11 +61,13 @@ struct HSVInfo {
 
 
 HSV RGB_to_HSV(uint8_t r, uint8_t g, uint8_t b) {
-  uint8_t pixel_data = {r,g,b};
+  uint8_t pixel_data[] = {r,g,b};
   cv::Mat pixel(1,1,CV_8UC3, (void*) pixel_data);
   cv::Mat pixelHSV;
   cv::cvtColor(pixel,pixelHSV,CV_RGB2HSV);
-  return HSV(pixelHSV.at(0), pixelHSV.at(1), pixelHSV.at(2));
+  return HSV(pixelHSV.at<uint8_t>(0),
+	     pixelHSV.at<uint8_t>(1),
+	     pixelHSV.at<uint8_t>(2));
 }
 
 
@@ -79,9 +82,9 @@ uint8_t hue_dist(uint8_t hue1, uint8_t hue2) {
 
 /** Returns a vector of vector of point-cloud indices, grouped according
     to hue similarity.*/
-std::vector< std::vector<int> > get_hue_clusters(pcl::PointXYGRGB seed, int seed_idx,
+std::vector< std::vector<int> > get_hue_clusters(pcl::PointXYZRGB seed, int seed_idx,
 						 std::vector<int> &indices,
-						 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+						 pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
 						 uint8_t hue_thresh) {
   std::vector< std::vector<int> > clusters;
   HSV baseHSV = RGB_to_HSV(seed.r, seed.g, seed.b);
@@ -99,9 +102,9 @@ std::vector< std::vector<int> > get_hue_clusters(pcl::PointXYGRGB seed, int seed
     for(int j=0; j < clusters.size(); j+=1) {
       pcl::PointXYZRGB rep_pt = cloud->at(clusters.at(j).at(0));
       HSV repHSV = RGB_to_HSV(rep_pt.r, rep_pt.g, rep_pt.b);     
-      uint8_t hue_dist = hue_dist(repHSV.h, neighborHSV.h);
-      if (hue_dist <= hue_thresh && hue_dist < closest_cluster_dist) {
-	closest_cluster_dist = hue_dist;
+      uint8_t hueDist = hue_dist(repHSV.h, neighborHSV.h);
+      if (hueDist <= hue_thresh && hueDist < closest_cluster_dist) {
+	closest_cluster_dist = hueDist;
 	closest_cluster_idx  = j;
       }
     }
@@ -122,7 +125,7 @@ std::vector< std::vector<int> > get_hue_clusters(pcl::PointXYGRGB seed, int seed
     INDICES of the points in the CLOUD, over which the average
     needs to be taken. */
 HSVInfo get_HSV_info(std::vector<int> &indices,
-		 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+		 pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud) {
   if (indices.size()) {
     float h_sin_total, h_cos_total;
     h_sin_total = h_cos_total =  0.0;
@@ -167,7 +170,6 @@ HSVInfo get_HSV_info(std::vector<int> &indices,
 }
 
 
-
 /** Returns the representative HSV for each hole in HOLES.
     For each hole, It looks in a sphere of radius RADIUS [default = 1cm]
     around it and gets the HSV value of the points-found.
@@ -186,12 +188,11 @@ HSVInfo get_HSV_info(std::vector<int> &indices,
 std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>::Ptr org_search,
 				  std::vector<surgical_msgs::Hole> &holes,
 				  float radius=0.01, uint8_t hue_thresh=8) {
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud = org_search->getInputCloud();
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud = org_search->getInputCloud();
   std::vector<HSVInfo::Ptr> hsv_info;
 
   for (int i = 0; i < holes.size(); i += 1) {
     surgical_msgs::Hole hole = holes[i];
-    //geometry_msgs::Point hole_position = hole.pt;
 
     std::vector<int> neighbors;
     std::vector<float> sqr_dists;
@@ -200,7 +201,7 @@ std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRG
 					     radius, neighbors, sqr_dists, 20);
     if (pts_found) {
       std::vector< std::vector<int> > hue_clusters
-	=  get_hue_clusters(hole.pt, (hole.x_idx*cloud->width + hole.y_idx), 
+	=  get_hue_clusters(cloud->at(hole.x_idx,hole.y_idx), (hole.x_idx*cloud->width + hole.y_idx), 
                             neighbors, cloud, hue_thresh);
 
       int max_cluster_size = -1;
@@ -210,8 +211,8 @@ std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRG
 	  max_cluster_size = hue_clusters[i].size();
 	  max_cluster_idx = i;
 	}
-
-      HSVInfo::Ptr hole_hsv(&(get_HSV_info(hue_clusters[max_cluster_idx], cloud)));
+      HSVInfo info = get_HSV_info(hue_clusters[max_cluster_idx], cloud);
+      HSVInfo::Ptr hole_hsv(&info);
       hsv_info.push_back(hole_hsv);
     }
   }
@@ -223,11 +224,15 @@ void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
   ROS_INFO("Initinfo recieved.");
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_pcl (new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::fromROSMsg(info->cloud, *cloud_pcl);
-
-  std::vector<surgical_msgs::Hole> holes
+  
+  pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>::Ptr
+    org_search(new pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>);
+  org_search->setInputCloud(cloud_pcl);
+  std::vector<surgical_msgs::Hole> holes = info->holes;
+  get_HSV(org_search, holes);
 }
 
-void main(int argc, char** argv) {
+int main(int argc, char** argv) {
   ros::init(argc, argv, "associate_color");
   ros::NodeHandle nh;
 
