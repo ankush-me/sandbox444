@@ -9,65 +9,161 @@
 #include <geometry_msgs/Point.h>
 
 #include <vector.h>
+#include <math.h>
 
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>
 #include <opencv2/core/core.hpp>
 
 
+struct HSV {
+  uint8_t h,s,v;
+
+  HSV (uint8_t _h, uint8_t _s, uint8_t _v) {
+    h=_h; s=_s; v=_v;
+  }
+
+  HSV (const HSV &o) {
+    h=o.h; s=o.s; v=o.v;
+  }
+};
+
+
 /** Structure to store HSV information. */
 struct HSVInfo {
   /** The HSV values. */
-  int h,s,v;
-  
+  uint8_t h,s,v;
+
   /** The standard deviations of the H,S,V, values. */
   float h_std, s_std, v_std;
 
   typedef boost::shared_ptr<HSV> Ptr;
 
   /* Constructor. */
-  HSV() {
+  HSVInfo() {
     h = s = v = 0;
     h_std = s_std = v_std = 0.0;
   }
 
-  /* Copy constructor. */ 
-  HSV(const HSV& o) {
+  HSVInfo(uint8_t _h, uint8_t _s, uint8_t _v,
+	  float _h_std, float _s_std, float _v_std) {
+    h = _h; s = _s; v = _v;
+    h_std = _h_std; s_std = _s_std; v_std = _v_std;
+  }
+
+  /* Copy constructor. */
+  HSVInfo(const HSVInfo& o) {
     h = o.h; s = o.s; v = o.v;
     h_std = o.h_std; s_std = o.s_std; v_std = o.v_std;
   }
 };
 
 
-/** Neighbor search : Let the INIT_PT fall down (increase Z coordinate)
-    until it finds a point in a disk of radius SEARCH_RADIUS (normal along z) 
-    and +- Z_DELTA. Uses the input k-d tree.
-   
-    Modifies the INIT_PT. The distance the point falls is STEP_DIST per iteration.
-    Returns the index of the point found. 
-    
-    Returns -1 if after falling for Z_MAX it still cannot find a point.*/
-int fall_and_lookaround(pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kdTree,
-			pcl::PointXYZ* init_pt, float search_radius,
-			float z_delta, float z_max, float step_dist=0.01) {
-  float z_init = init_pt->z;
-  
-  std::vector<int> neighbors;
-  std::vector<float> sqr_dists;
+HSV RGB_to_HSV(uint8_t r, uint8_t g, uint8_t b) {
+  uint8_t pixel_data = {r,g,b};
+  cv::Mat pixel(1,1,CV_8UC3, (void*) pixel_data);
+  cv::Mat pixelHSV;
+  cv::cvtColor(pixel,pixelHSV,CV_RGB2HSV);
+  return HSV(pixelHSV.at(0), pixelHSV.at(1), pixelHSV.at(2));
+}
 
-  pcl::PointXYZRGB pt;
-  pt.x = init_pt->x; pt.y = init_pt->y; pt.z = init_pt->z;
-    
-  while(pt.z <= z_init + z_max) {
-    int pts_found = kdTree->radiusSearch(pt, search_radius, neighbors, sqr_dists, 1);
-    if (pts_found) {
-      pcl::PointXYZRGB neighbor = kdTree->getInputCloud()->at(neighbors.at(0));
-      if (fabs(pt.z - neighbor.z) <= z_delta)
-	return neighbors.at(0);
+
+uint8_t hue_dist(uint8_t hue1, uint8_t hue2) {
+  float rad1 = 2.0 * hue1/180.0 * CV_PI;
+  float rad2 = 2.0 * hue2/180.0 * CV_PI;
+
+  float ang = fabs(atan2(sin(rad1-rad2), cos(rad1-rad2)));
+  return (uint8_t) (ang/CV_PI*180.0/2.0);
+}
+
+
+/** Returns a vector of vector of point-cloud indices, grouped according
+    to hue similarity.*/
+std::vector< std::vector<int> > get_hue_clusters(pcl::PointXYGRGB seed, int seed_idx,
+						 std::vector<int> &indices,
+						 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
+						 uint8_t hue_thresh) {
+  std::vector< std::vector<int> > clusters;
+  HSV baseHSV = RGB_to_HSV(seed.r, seed.g, seed.b);
+  std::vector<int> base_cluster;
+  base_cluster.push_back(seed_idx);
+  clusters.push_back(base_cluster);
+
+  for (int i=0; i < indices.size(); i += 1) {
+    pcl::PointXYZRGB neighbor_pt = cloud->at(indices[i]);
+    HSV neighborHSV = RGB_to_HSV(neighbor_pt.r, neighbor_pt.g, neighbor_pt.b);
+
+    /** Find the closest cluster to this neighbor pt. */
+    int closest_cluster_idx = -1;
+    int closest_cluster_dist = 500;
+    for(int j=0; j < clusters.size(); j+=1) {
+      pcl::PointXYZRGB rep_pt = cloud->at(clusters.at(j).at(0));
+      HSV repHSV = RGB_to_HSV(rep_pt.r, rep_pt.g, rep_pt.b);     
+      uint8_t hue_dist = hue_dist(repHSV.h, neighborHSV.h);
+      if (hue_dist <= hue_thresh && hue_dist < closest_cluster_dist) {
+	closest_cluster_dist = hue_dist;
+	closest_cluster_idx  = j;
+      }
     }
-    pt.z += step_dist;
+
+    if (closest_cluster_idx != -1)
+      clusters[i].push_back(i);
+    else {
+      std::vector<int> cluster;
+      cluster.push_back(i);
+      clusters.push_back(cluster);
+    }
   }
-  return -1;
+  return clusters;
+}
+
+
+/** Returns a cummulative [average] HSV, given a list of
+    INDICES of the points in the CLOUD, over which the average
+    needs to be taken. */
+HSVInfo get_HSV_info(std::vector<int> &indices,
+		 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+  if (indices.size()) {
+    float h_sin_total, h_cos_total;
+    h_sin_total = h_cos_total =  0.0;
+    int s_total, v_total;
+    s_total = v_total = 0;
+
+    for(int i=0; i<indices.size(); i+=1) {
+      pcl::PointXYZRGB pt = cloud->at(indices[i]);
+      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+      h_sin_total += sin(CV_PI*2*hsv.h/180.0);
+      h_cos_total += cos(CV_PI*2*hsv.h/180.0);
+      s_total += hsv.s;
+      v_total += hsv.v;
+    }
+    float h_mean = atan2(h_sin_total, h_cos_total);
+    float v_mean = ((float)v_total)/indices.size();
+    float s_mean = ((float)s_total)/indices.size();
+
+    float h_std, s_std, v_std;
+    h_std = s_std = v_std = 0.0;
+    for(int i=0; i<indices.size(); i+=1) {
+      pcl::PointXYZRGB pt = cloud->at(indices[i]);
+      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+      float h = CV_PI*2*hsv.h/180.0;
+      h_std += (h_mean - h)*(h_mean -h);
+      s_std += (s_mean - hsv.s)*(s_mean - hsv.s);
+      v_std += (v_mean - hsv.v)*(v_mean - hsv.v);
+    }
+    h_std = sqrt(h_std/indices.size());
+    s_std = sqrt(s_std/indices.size());
+    v_std = sqrt(v_std/indices.size());
+
+    uint8_t mean_hue = (uint8_t) (h_mean/CV_PI*180.0/2.0);
+    float std_hue = h_std/CV_PI*180.0/2.0;
+    HSVInfo hsv_info(mean_hue, s_mean, v_mean,
+		     std_hue, s_std, v_std);
+    return hsv_info;
+  } else {
+    HSVInfo hsv_info;
+    return hsv_info;
+  }
 }
 
 
@@ -81,44 +177,46 @@ int fall_and_lookaround(pcl::search::KdTree<pcl::PointXYZRGB>::Ptr kdTree,
 
     Then, it takes the mean of the HSV values of the dominant hue group
     and spits it out in a vector.
-    
-    The mapping is maintained by the indices. 
+
+    The mapping is maintained by the indices.
 
     ORG_SEARCH : Used for nearest-neighbor searches in organized point-cloud.
     -----------  It is ASSUMED, that the HOLES match-up with the PointCloud
 		 which is used to instantiate ORG_SEARCH. */
 std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>::Ptr org_search,
 				  std::vector<surgical_msgs::Hole> &holes,
-				  float radius=0.01, int hue_thresh=15) {
-
+				  float radius=0.01, uint8_t hue_thresh=8) {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud = org_search->getInputCloud();
   std::vector<HSVInfo::Ptr> hsv_info;
 
   for (int i = 0; i < holes.size(); i += 1) {
     surgical_msgs::Hole hole = holes[i];
-    geometry_msgs::Point hole_position = hole.pt;
+    //geometry_msgs::Point hole_position = hole.pt;
 
-    int pts_found = kdTree->radiusSearch(pt, search_radius, neighbors, sqr_dists, 1);
+    std::vector<int> neighbors;
+    std::vector<float> sqr_dists;
 
+    int pts_found = org_search->radiusSearch(cloud->at(hole.x_idx, hole.y_idx),
+					     radius, neighbors, sqr_dists, 20);
+    if (pts_found) {
+      std::vector< std::vector<int> > hue_clusters
+	=  get_hue_clusters(hole.pt, (hole.x_idx*cloud->width + hole.y_idx), 
+                            neighbors, cloud, hue_thresh);
 
-    HSVInfo::Ptr hole_hsv(new HSVInfo);
-    
+      int max_cluster_size = -1;
+      int max_cluster_idx  = -1;
+      for(int i = 0; i < hue_clusters.size(); i += 1)
+	if (hue_clusters[i].size() > max_cluster_size) {
+	  max_cluster_size = hue_clusters[i].size();
+	  max_cluster_idx = i;
+	}
+
+      HSVInfo::Ptr hole_hsv(&(get_HSV_info(hue_clusters[max_cluster_idx], cloud)));
+      hsv_info.push_back(hole_hsv);
+    }
   }
   return hsv_info;
 }
-
-
-Mat image, imageHSV;
-image_in->copyTo(image);
-cvtColor(image, imageHSV,CV_BGR2HSV);
-
-img = imageHSV;
-uchar* ptr_hsv = cvPtr2D(&img, y, x, NULL);
-int hue = (int) ptr_hsv[0];
-int sat = (int) ptr_hsv[1];
-int value   = (int) ptr_hsv[2];
-
-
 
 
 void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
