@@ -164,64 +164,32 @@ void  display_HSV(uint8_t h, uint8_t s, uint8_t v) {
 }
 
 
-/** Returns a cummulative [average] HSV, given a list of
-    INDICES of the points in the CLOUD, over which the average
-    needs to be taken. 
-HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
-			  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud) {
-  if (indices->size()) {
-    float h_sin_total, h_cos_total;
-    h_sin_total = h_cos_total =  0.0;
-    int s_total, v_total;
-    s_total = v_total = 0;
 
-    for(int i=0; i < indices->size(); i+=1) {
-      pcl::PointXYZRGB pt = cloud->at(indices->at(i));
-      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+HSVInfo::Ptr average_HSV_info(std::vector<HSVInfo::Ptr> hsv_input) {
+  int h_total, s_total, v_total;
+  h_total = s_total = v_total = 0;
 
-      //display_HSV(hsv.h,hsv.s,hsv.v);
+  float h_std, s_std, v_std;
+  h_std = s_std = v_std = 0.0;
 
-      h_sin_total += sin(CV_PI*2*hsv.h/180.0);
-      h_cos_total += cos(CV_PI*2*hsv.h/180.0);
-      s_total += hsv.s;
-      v_total += hsv.v;
-    }
+  for(int i = 0; i < hsv_input.size(); i+=1) {
+    h_total += (int) hsv_input[i]->h;
+    s_total += (int) hsv_input[i]->s;
+    v_total += (int) hsv_input[i]->v;
 
-    float h_mean = atan2(h_sin_total, h_cos_total);
-    if (h_mean < 0)
-      h_mean += CV_PI;
-
-    float v_mean = ((float)v_total)/indices->size();
-    float s_mean = ((float)s_total)/indices->size();
-
-    float h_std, s_std, v_std;
-    h_std = s_std = v_std = 0.0;
-    for(int i=0; i<indices->size(); i+=1) {
-      pcl::PointXYZRGB pt = cloud->at(indices->at(i));
-      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
-      float h = CV_PI*2*hsv.h/180.0;
-      h_std += (h_mean - h)*(h_mean -h);
-      s_std += (s_mean - hsv.s)*(s_mean - hsv.s);
-      v_std += (v_mean - hsv.v)*(v_mean - hsv.v);
-    }
-    h_std = sqrt(h_std/indices->size());
-    s_std = sqrt(s_std/indices->size());
-    v_std = sqrt(v_std/indices->size());
-
-    float std_hue = h_std/CV_PI*180.0/2.0;
-    uint8_t mean_hue = (uint8_t) (h_mean/CV_PI*180.0/2.0);
-    HSVInfo::Ptr hsv_info(new HSVInfo(mean_hue, (uint8_t) s_mean, (uint8_t) v_mean,
-				      std_hue, s_std, v_std));
-
-    display_HSV(hsv_info->h,hsv_info->s,hsv_info->v);
-
-    return hsv_info;
-  } else {
-    HSVInfo::Ptr hsv_info(new HSVInfo);
-    return hsv_info;
+    h_std = h_std > hsv_input[i]->h_std? h_std : hsv_input[i]->h_std;
+    s_std = s_std > hsv_input[i]->s_std? s_std : hsv_input[i]->s_std;
+    v_std = v_std > hsv_input[i]->v_std? v_std : hsv_input[i]->v_std;
   }
-  }*/
+  h_total /= hsv_input.size();
+  s_total /= hsv_input.size();
+  v_total /= hsv_input.size();
 
+  return HSVInfo::Ptr(new HSVInfo((uint8_t) h_total,
+				  (uint8_t) s_total,
+				  (uint8_t) v_total,
+				  h_std, s_std, v_std));
+}
 
 /** Returns a cummulative [average] HSV, given a list of
     INDICES of the points in the CLOUD, over which the average
@@ -291,9 +259,7 @@ HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
     uint8_t mean_hue = (uint8_t) (h_mean/2.0);
     HSVInfo::Ptr hsv_info(new HSVInfo(mean_hue, (uint8_t) s_mean, (uint8_t) v_mean,
 				      h_std, s_std, v_std));
-
-    display_HSV(hsv_info->h,hsv_info->s,hsv_info->v);
-
+    //display_HSV(hsv_info->h,hsv_info->s,hsv_info->v);
     return hsv_info;
   } else {
     HSVInfo::Ptr hsv_info(new HSVInfo);
@@ -317,9 +283,9 @@ HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
     ORG_SEARCH : Used for nearest-neighbor searches in organized point-cloud.
     -----------  It is ASSUMED, that the HOLES match-up with the PointCloud
 		 which is used to instantiate ORG_SEARCH. */
-std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>::Ptr org_search,
-				  std::vector<surgical_msgs::Hole> holes,
-				  float radius=0.005, uint8_t hue_thresh=5) {
+std::vector<HSVInfo::Ptr> get_hole_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>::Ptr org_search,
+				       std::vector<surgical_msgs::Hole> holes,
+				       float radius=0.01, uint8_t hue_thresh=5) {
   pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud = org_search->getInputCloud();
   std::vector<HSVInfo::Ptr> hsv_info;
 
@@ -350,6 +316,24 @@ std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRG
   return hsv_info;
 }
 
+std::vector<HSVInfo::Ptr> get_cut_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>::Ptr org_search,
+				      std::vector<surgical_msgs::Cut> cuts,
+				      float radius=0.01, uint8_t hue_thresh=5) {
+  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud = org_search->getInputCloud();
+  std::vector<HSVInfo::Ptr> cuts_hsv_info;
+
+  for (int i = 0; i < cuts.size(); i += 1) {
+    surgical_msgs::Cut cut = cuts[i];
+    std::vector<surgical_msgs::Hole> nodes = cut.nodes;
+    std::vector<HSVInfo::Ptr> nodes_hsv_info = get_hole_HSV(org_search, nodes,
+							    radius, hue_thresh);
+    HSVInfo::Ptr cut_hsv_info(average_HSV_info(nodes_hsv_info));
+    display_HSV(cut_hsv_info->h,cut_hsv_info->s,cut_hsv_info->v);
+    cuts_hsv_info.push_back(cut_hsv_info);
+    }
+    return cuts_hsv_info;
+}
+
 
 void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
   ROS_INFO("Initinfo recieved.");
@@ -360,24 +344,10 @@ void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
     org_search(new pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>);
   org_search->setInputCloud(cloud_pcl);
   std::vector<surgical_msgs::Hole> holes = info->holes;
-  std::vector<HSVInfo::Ptr> hsv_info = get_HSV(org_search, holes);
+  std::vector<HSVInfo::Ptr> hole_hsv_info = get_hole_HSV(org_search, holes);
 
-  /**for(int i = 0; i < hsv_info.size(); i+=1) {
-    RGB rgb = HSV_to_RGB(hsv_info[i]->h,hsv_info[i]->s,hsv_info[i]->v);
-
-    std::cout<<"HSV recieved: "<<(int)hsv_info[i]->h<<","<<(int)hsv_info[i]->s<<","<<(int)hsv_info[i]->v<<std::endl;
-    std::cout<<"RGB recieved: "<<(int)rgb.r<<","<<(int)rgb.g<<","<<(int)rgb.b<<std::endl;
-
-    cv::Mat image = cv::Mat::zeros(50,50,CV_8UC3);
-    cv::rectangle(image, cv::Point(0,0), cv::Point(50,50),
-		  CV_RGB(rgb.r,rgb.g,rgb.b),CV_FILLED);
-    std::stringstream ss;
-    ss<<"Hole "<<i;
-    cv::namedWindow(ss.str());
-    cv::waitKey(100);
-    cv::imshow(ss.str(), image);
-    cv::waitKey(100);    
-    }*/
+  std::vector<surgical_msgs::Cut> cuts = info->cuts;
+  std::vector<HSVInfo::Ptr> cut_hsv_info = get_cut_HSV(org_search, cuts);
 }
 
 

@@ -10,6 +10,7 @@
   <url>http://ros.org/wiki/color_association</url>
   <depend package="roscpp"/>
   <depend package="surgical_msgs"/>
+  <depend package="geometry_msgs"/>
   <depend package="pcl"/>
   <depend package="opencv2"/>
   <depend package="cv_bridge"/>

@@ -74,7 +74,6 @@ void mouseHandler(int event, int x, int y, int flags, void* data) {
     std::sprintf(pix, "HSV : (%d, %d, %d)", hue, sat, value);
     std::string pixel_data = pix;
 
-
     /* display the BGR value */
     rectangle(image, Point(0,0), Point(50,50), CV_RGB(red,green,blue),CV_FILLED);    
     putText(image, pixel_data, Point(x+2,y+2), CV_FONT_HERSHEY_PLAIN,

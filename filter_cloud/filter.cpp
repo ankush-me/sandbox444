@@ -40,7 +40,7 @@ pcl::PointCloud<pcl::PointXYZRGB>::Ptr CLOUD;
     http://stackoverflow.com/questions/2254909/boost-random-number-generator */
 template<typename vector_type>
 void get_random_samples(std::vector<vector_type>* cloud,
-			std::vector<vector_type>* samples, int N) {
+		std::vector<vector_type>* samples, int N) {
 
   typedef boost::mt19937 RNGType;
   RNGType rng;

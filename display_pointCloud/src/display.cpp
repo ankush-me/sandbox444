@@ -8,7 +8,6 @@
 #include <pcl/io/pcd_io.h>
 
 
-
 class visualizer {
   /** A simple class to help visualize the PCL point clouds.*/
 public: 
