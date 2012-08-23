@@ -10,15 +10,19 @@
 
 #include <vector>
 #include <math.h>
+#include <sstream>
 
 #include <pcl/point_types.h>
 #include <pcl/features/normal_3d.h>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 
 struct HSV {
   uint8_t h,s,v;
+  typedef boost::shared_ptr<HSV> Ptr;
 
   HSV (uint8_t _h, uint8_t _s, uint8_t _v) {
     h=_h; s=_s; v=_v;
@@ -28,6 +32,21 @@ struct HSV {
     h=o.h; s=o.s; v=o.v;
   }
 };
+
+
+struct RGB {
+  uint8_t r,g,b;
+  typedef boost::shared_ptr<RGB> Ptr;
+
+  RGB (uint8_t _r, uint8_t _g, uint8_t _b) {
+    r=_r; g=_g; b=_b;
+  }
+
+  RGB (const RGB &o) {
+    r=o.r; g=o.g; b=o.b;
+  }
+};
+
 
 
 /** Structure to store HSV information. */
@@ -70,22 +89,31 @@ HSV RGB_to_HSV(uint8_t r, uint8_t g, uint8_t b) {
 	     pixelHSV.at<uint8_t>(2));
 }
 
+RGB HSV_to_RGB(uint8_t h, uint8_t s, uint8_t v) {
+  uint8_t pixel_data[] = {h,s,v};
+  cv::Mat pixel(1,1,CV_8UC3, (void*) pixel_data);
+  cv::Mat pixelRGB;
+  cv::cvtColor(pixel,pixelRGB,CV_HSV2RGB);
+  return RGB(pixelRGB.at<uint8_t>(0),
+	     pixelRGB.at<uint8_t>(1),
+	     pixelRGB.at<uint8_t>(2));
+}
+
 
 uint8_t hue_dist(uint8_t hue1, uint8_t hue2) {
-  float rad1 = 2.0 * hue1/180.0 * CV_PI;
-  float rad2 = 2.0 * hue2/180.0 * CV_PI;
-
-  float ang = fabs(atan2(sin(rad1-rad2), cos(rad1-rad2)));
-  return (uint8_t) (ang/CV_PI*180.0/2.0);
+  int delta = 2 * abs(((int)hue1) - ((int)hue2));
+  return (uint8_t) ((( abs(360 - delta) < delta ) ? abs(360-delta) : delta) / 2);
 }
 
 
 /** Returns a vector of vector of point-cloud indices, grouped according
     to hue similarity.*/
-std::vector<boost::shared_ptr<std::vector<int> > > get_hue_clusters(pcl::PointXYZRGB seed, int seed_idx,
-								     std::vector<int> indices,
-								     pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
-								     uint8_t hue_thresh) {
+std::vector<boost::shared_ptr<std::vector<int> > >
+get_hue_clusters(pcl::PointXYZRGB seed, int seed_idx,
+		 std::vector<int> indices,
+		 pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud,
+		 uint8_t hue_thresh) {
+
   std::vector<boost::shared_ptr<std::vector<int> > > clusters;
   HSV baseHSV = RGB_to_HSV(seed.r, seed.g, seed.b);
   boost::shared_ptr<std::vector<int> > base_cluster(new std::vector<int>);
@@ -117,22 +145,28 @@ std::vector<boost::shared_ptr<std::vector<int> > > get_hue_clusters(pcl::PointXY
       clusters.push_back(cluster);
     }
   }
-  std::cout<< "[get_hue_clusters] Returning "<<clusters.size()<<" clusters."<<std::endl;
-  for (int c=0; c < clusters.size(); c++) {
-    std::cout<<"\tcluster "<<c<<" has "<<clusters[c]->size()<<" points."<<std::endl;
-    for (int d=0; d<clusters.at(c)->size(); d++) {
-      std::cout<<"\t\t"<<clusters.at(c)->at(d)<<" ";
-    }
-    std::cout<<std::endl;
-  }
-  std::cout<<"\t------------"<<std::endl;
   return clusters;
+}
+
+
+void  display_HSV(uint8_t h, uint8_t s, uint8_t v) {
+  RGB rgb = HSV_to_RGB(h,s,v);
+
+  cv::Mat image = cv::Mat::zeros(100,100,CV_8UC3);
+  cv::rectangle(image, cv::Point(0,0), cv::Point(100,100),
+		CV_RGB(rgb.r,rgb.g,rgb.b),CV_FILLED);
+  std::stringstream ss;
+  ss<<"Color "<<ros::Time::now();
+  cv::namedWindow(ss.str());
+  cv::waitKey(100);
+  cv::imshow(ss.str(), image);
+  cv::waitKey(100);   
 }
 
 
 /** Returns a cummulative [average] HSV, given a list of
     INDICES of the points in the CLOUD, over which the average
-    needs to be taken. */
+    needs to be taken. 
 HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
 			  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud) {
   if (indices->size()) {
@@ -144,12 +178,19 @@ HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
     for(int i=0; i < indices->size(); i+=1) {
       pcl::PointXYZRGB pt = cloud->at(indices->at(i));
       HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+
+      //display_HSV(hsv.h,hsv.s,hsv.v);
+
       h_sin_total += sin(CV_PI*2*hsv.h/180.0);
       h_cos_total += cos(CV_PI*2*hsv.h/180.0);
       s_total += hsv.s;
       v_total += hsv.v;
     }
+
     float h_mean = atan2(h_sin_total, h_cos_total);
+    if (h_mean < 0)
+      h_mean += CV_PI;
+
     float v_mean = ((float)v_total)/indices->size();
     float s_mean = ((float)s_total)/indices->size();
 
@@ -167,10 +208,92 @@ HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
     s_std = sqrt(s_std/indices->size());
     v_std = sqrt(v_std/indices->size());
 
-    uint8_t mean_hue = (uint8_t) (h_mean/CV_PI*180.0/2.0);
     float std_hue = h_std/CV_PI*180.0/2.0;
-    HSVInfo::Ptr hsv_info(new HSVInfo(mean_hue, s_mean, v_mean,
+    uint8_t mean_hue = (uint8_t) (h_mean/CV_PI*180.0/2.0);
+    HSVInfo::Ptr hsv_info(new HSVInfo(mean_hue, (uint8_t) s_mean, (uint8_t) v_mean,
 				      std_hue, s_std, v_std));
+
+    display_HSV(hsv_info->h,hsv_info->s,hsv_info->v);
+
+    return hsv_info;
+  } else {
+    HSVInfo::Ptr hsv_info(new HSVInfo);
+    return hsv_info;
+  }
+  }*/
+
+
+/** Returns a cummulative [average] HSV, given a list of
+    INDICES of the points in the CLOUD, over which the average
+    needs to be taken. */
+HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
+			  pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud) {
+  if (indices->size()) {
+    int h_total, s_total, v_total;
+    h_total = s_total = v_total = 0;
+
+    for(int i=0; i < indices->size(); i+=1) {
+      pcl::PointXYZRGB pt = cloud->at(indices->at(i));
+      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+
+      h_total += 2 * ((int) hsv.h);
+      s_total += hsv.s;
+      v_total += hsv.v;
+    }
+    float h_mean1 = ((float)h_total)/indices->size();
+    float v_mean = ((float)v_total)/indices->size();
+    float s_mean = ((float)s_total)/indices->size();
+
+    float h_std1, s_std, v_std;
+    h_std1 = s_std = v_std = 0.0;
+    for(int i=0; i<indices->size(); i+=1) {
+      pcl::PointXYZRGB pt = cloud->at(indices->at(i));
+      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+      int h = 2 * ((int) hsv.h);
+      h_std1 += (  h_mean1 - h  )*(   h_mean1 -h  );
+      s_std += (s_mean - hsv.s)*(s_mean - hsv.s);
+      v_std += (v_mean - hsv.v)*(v_mean - hsv.v);
+    }
+    h_std1 = sqrt(h_std1/indices->size());
+    s_std  = sqrt(s_std/indices->size());
+    v_std  = sqrt(v_std/indices->size());
+
+
+    h_total = 0;
+    for(int i=0; i < indices->size(); i+=1) {
+      pcl::PointXYZRGB pt = cloud->at(indices->at(i));
+      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+      h_total += (2 * ((int) hsv.h) + 180) % 360;
+    }
+
+    float h_mean2 = ((float)h_total)/indices->size();
+    float h_std2 = 0.0;
+    for(int i=0; i<indices->size(); i+=1) {
+      pcl::PointXYZRGB pt = cloud->at(indices->at(i));
+      HSV hsv = RGB_to_HSV(pt.r, pt.g, pt.b);
+      int h = (2 * ((int) hsv.h) + 180) % 360;
+      h_std2 += (  h_mean2 - h  )*(   h_mean2 -h  );
+    }
+    h_std2 = sqrt(h_std2/indices->size());
+
+    float h_mean, h_std;
+    if (h_std1 < h_std2) {
+      h_std  = h_std1;
+      h_mean = h_mean1;
+    } else {
+      h_std  = h_std2;
+      if (h_mean2 < 180)
+	h_mean = h_mean2 + 180;
+      else
+	h_mean = h_mean2 - 180;
+    }
+
+    uint8_t mean_hue = (uint8_t) (h_mean/2.0);
+    HSVInfo::Ptr hsv_info(new HSVInfo(mean_hue, (uint8_t) s_mean, (uint8_t) v_mean,
+				      h_std, s_std, v_std));
+
+    display_HSV(hsv_info->h,hsv_info->s,hsv_info->v);
+
     return hsv_info;
   } else {
     HSVInfo::Ptr hsv_info(new HSVInfo);
@@ -196,7 +319,7 @@ HSVInfo::Ptr get_HSV_info(boost::shared_ptr<std::vector<int> > indices,
 		 which is used to instantiate ORG_SEARCH. */
 std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>::Ptr org_search,
 				  std::vector<surgical_msgs::Hole> holes,
-				  float radius=0.01, uint8_t hue_thresh=8) {
+				  float radius=0.005, uint8_t hue_thresh=5) {
   pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud = org_search->getInputCloud();
   std::vector<HSVInfo::Ptr> hsv_info;
 
@@ -212,11 +335,10 @@ std::vector<HSVInfo::Ptr> get_HSV(pcl::search::OrganizedNeighbor<pcl::PointXYZRG
       std::vector<boost::shared_ptr<std::vector<int> > > hue_clusters =
 	get_hue_clusters(cloud->at(hole.x_idx,hole.y_idx), (hole.x_idx*cloud->width + hole.y_idx), 
 			 neighbors, cloud, hue_thresh);
-
-      int max_cluster_size = 0;
-      int max_cluster_idx = 0;
+      int max_cluster_size = -1;
+      int max_cluster_idx  = -1;
       for(int i = 0; i < hue_clusters.size(); i += 1) {
-	if (hue_clusters[i]->size() > max_cluster_size) {
+	if (((int) hue_clusters[i]->size()) > max_cluster_size) {
 	  max_cluster_size = hue_clusters[i]->size();
 	  max_cluster_idx = i;
 	}
@@ -238,9 +360,26 @@ void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
     org_search(new pcl::search::OrganizedNeighbor<pcl::PointXYZRGB>);
   org_search->setInputCloud(cloud_pcl);
   std::vector<surgical_msgs::Hole> holes = info->holes;
-  get_HSV(org_search, holes);
-  ROS_INFO("\treturned from getHSV");
+  std::vector<HSVInfo::Ptr> hsv_info = get_HSV(org_search, holes);
+
+  /**for(int i = 0; i < hsv_info.size(); i+=1) {
+    RGB rgb = HSV_to_RGB(hsv_info[i]->h,hsv_info[i]->s,hsv_info[i]->v);
+
+    std::cout<<"HSV recieved: "<<(int)hsv_info[i]->h<<","<<(int)hsv_info[i]->s<<","<<(int)hsv_info[i]->v<<std::endl;
+    std::cout<<"RGB recieved: "<<(int)rgb.r<<","<<(int)rgb.g<<","<<(int)rgb.b<<std::endl;
+
+    cv::Mat image = cv::Mat::zeros(50,50,CV_8UC3);
+    cv::rectangle(image, cv::Point(0,0), cv::Point(50,50),
+		  CV_RGB(rgb.r,rgb.g,rgb.b),CV_FILLED);
+    std::stringstream ss;
+    ss<<"Hole "<<i;
+    cv::namedWindow(ss.str());
+    cv::waitKey(100);
+    cv::imshow(ss.str(), image);
+    cv::waitKey(100);    
+    }*/
 }
+
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "associate_color");
@@ -250,5 +389,6 @@ int main(int argc, char** argv) {
 
   ros::Subscriber  sub;
   sub = nh.subscribe(init_info_topic, 1, initInfoCB);
+
   ros::spin();
 }
