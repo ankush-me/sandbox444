@@ -1,9 +1,11 @@
+/** Author: Ankush Gupta
+    Date  : 24th August 2012. */
+
 #include <iostream>
 #include <Eigen/Dense>
 #include <math.h>
 
 using namespace Eigen;
-
 
 class circle3d {
 private:
@@ -21,15 +23,18 @@ private:
 
 public:
 
+  /** Clockwise/ counter-clockwise. */
+  enum orientation{CW, CCW};
+
   /** Finds a 3D circle which fits PT1, PT2, PT3. */
   circle3d(Eigen::Vector3d &pt1,
 	   Eigen::Vector3d &pt2,
 	   Eigen::Vector3d &pt3) : _normal(),
-				  _rotation(3,3),
-                                  _translation(),
-				  _center(),
-				  _x_axis(), _y_axis(),
-				  _z_axis(), _radius(0) {
+				   _rotation(3,3),
+				   _translation(),
+				   _center(),
+				   _x_axis(), _y_axis(),
+				   _z_axis(), _radius(0) {
     _pt1 = pt1; _pt2 = pt2; _pt3 = pt3;
  }
 
@@ -118,6 +123,46 @@ public:
     _center = (_rotation.transpose()*center3) - _translation;
   }
 
+  /** Returns whether PT2 is clockwise or counter-clockwise
+      with respect to pt1 in the plane defined by the three points. */
+  orientation get_orientation(Eigen::Vector3d &pt1, Eigen::Vector3d &pt2) {
+    return _normal.dot((pt1 - _center).cross(pt2 - _center)) >= 0? CCW : CW;
+  }
+
+
+  /** Walks distance DIST on the circumference of the 3D circle,
+      starting at the REFERENCE_PT, in the DIR direction.
+      Returns the TRANSFORM of the destination point in the world frame. */
+  Vector3d extend_circumfrenece(Eigen::Vector3d reference_pt, double dist,
+				orientation dir) {
+    if (((_center - reference_pt).norm() - _radius) > 0.005
+	|| (_pt1 - reference_pt).dot(_normal) > 1e-5) {
+      std::cout<<"Error: extend_circumference: Reference point, not on the circle."
+	       <<std::endl;
+      throw;
+    }
+
+    Eigen::Vector3d center_local    =  _rotation*(_center + _translation);
+    Eigen::Vector3d reference_local =  _rotation*(reference_pt + _translation);
+    Eigen::Vector3d center_to_ref = reference_local - center_local;
+
+    double angle = (dir==CCW)? dist/_radius : -dist/_radius;
+    Eigen::Rotation2Dd rot(angle);
+    Eigen::Vector2d target_local = rot*Eigen::Vector2d(center_to_ref(0), center_to_ref(1));
+    
+    //finding the tangent at Target : numerical difference.
+    double diff_angle = (dir==CCW)? (dist+0.001)/_radius : -(dist + 0.001)/_radius;
+    Eigen::Rotation2Dd diff_rot(diff_angle);
+    Eigen::Vector2d tangent = (diff_rot*Eigen::Vector2d(center_to_ref(0), center_to_ref(1))) - target_local;
+    tangent/= tangent.norm();
+
+    Eigen::Vector3d tangent_x(tangent(0), tangent(1), 0);
+    Eigen::Vector3d world_tangent_x = (_rotation.transpose()*tangent_x) - _translation;
+    Eigen::Vector3d world_tangent_z = _normal;
+    Eigen::Vector3d world_tangent_y = world_tangent_z.cross(world_tangent_x);
+
+    Eigen::Vector3d target_world = (_rotation.transpose()*Eigen::Vector3d(target_local(0), target_local(1),0)) - _translation;
+  }
 };
 
 
