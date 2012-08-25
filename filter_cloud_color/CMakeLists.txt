@@ -90,8 +90,8 @@ find_package(ROS
 include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
                     ${ROS_INCLUDE_DIRS}
                     ${TF_INCLUDE_DIRS} ${BULLET_INCLUDE_DIRS}
+		    ${BULLET_DIR}/src
 		    ${FILTER_COLOR_CLOUD_DIR}/src
-		    ${FILTER_COLOR_CLOUD_DIR}/include
 		    ${CV_BRIDGE_INCLUDE_DIRS}
 		    ${EIGEN3_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS} ${TF_LIBRARY_DIRS}
@@ -118,6 +118,7 @@ add_executable(find_color_points src/color_point_finder.cpp)
 target_link_libraries(find_color_points ${PCL_LIBRARIES}
                                         ${ROS_LIBRARIES}  
 					cloudOps utils
+					boxFilter
 					${Boost_LIBRARIES})
 #############################################################
  
