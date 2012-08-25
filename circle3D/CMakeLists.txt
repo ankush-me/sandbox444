@@ -9,9 +9,7 @@ find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
 
-#include_directories(${CMAKE_SOURCE_DIR}/include)
-#link_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${EIGEN3_INCLUDE_DIR})
 
-
-add_executable(circle3D src/circle3D.cpp)
+add_executable(circle3D src/circle3d.cpp)
 #############################################################
