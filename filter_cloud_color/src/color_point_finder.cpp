@@ -19,8 +19,13 @@ using namespace Eigen;
 struct LocalConfig : Config {
   static std::string pcTopic;
   static float downsample;
-  static int tableMaxHue;
-  static int tableMinHue;
+  static int tableMaxH;
+  static int tableMinH;
+  static int tableMaxS;
+  static int tableMinS;
+  static int tableMaxV;
+  static int tableMinV;
+  static bool tableNeg;
   static float zClipHigh;
   static float zClipLow;
   static int maxH;
@@ -37,9 +42,19 @@ struct LocalConfig : Config {
     params.push_back(new Parameter<float>
 		     ("downsample", &downsample, "Downsampling"));
     params.push_back(new Parameter<int>
-		     ("tableMaxHue", &tableMaxHue, "Maximum table hue"));
+		     ("tableMaxH", &tableMaxH, "Maximum table hue"));
     params.push_back(new Parameter<int>
-		     ("tableMinHue", &tableMinHue, "Minimum table hue"));
+		     ("tableMinH", &tableMinH, "Minimum table hue"));
+    params.push_back(new Parameter<int>
+		     ("tableMaxS", &tableMaxS, "Maximum table saturation"));
+    params.push_back(new Parameter<int>
+		     ("tableMinS", &tableMinS, "Minimum table saturation"));
+    params.push_back(new Parameter<int>
+		     ("tableMaxV", &tableMaxV, "Maximum table value"));
+    params.push_back(new Parameter<int>
+		     ("tableMinV", &tableMinV, "Minimum table value"));
+    params.push_back(new Parameter<bool>
+		     ("tableNeg", &tableNeg, "Filter out/in table")); 
     params.push_back(new Parameter<float>
 		     ("zClipHigh", &zClipHigh, "Clip above this"));
     params.push_back(new Parameter<float>
@@ -65,8 +80,13 @@ pcl::visualization::CloudViewer viewer ("Visualizer");
 
 std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
 float LocalConfig::downsample = 0.008;
-int LocalConfig::tableMaxHue = 10;
-int LocalConfig::tableMinHue = 170;
+int LocalConfig::tableMaxH = 10;
+int LocalConfig::tableMinH = 170;
+int LocalConfig::tableMaxS = 0;
+int LocalConfig::tableMinS = 255;
+int LocalConfig::tableMaxV = 0;
+int LocalConfig::tableMinV = 255;
+bool LocalConfig::tableNeg = true;
 float LocalConfig::zClipLow = 0.0;
 float LocalConfig::zClipHigh = 0.5;
 int LocalConfig::maxH = 180;
@@ -135,9 +155,13 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     std::cout<<"Before entering if to call initBoxFilter"<<std::endl;
 
   if (!boxProp.m_init)  {
-    hueFilter_wrapper hue_filter(LocalConfig::tableMinHue, 
-				 LocalConfig::tableMaxHue, 
-				 0, 255, 0, 255, false);
+    hueFilter_wrapper hue_filter(LocalConfig::tableMinH, 
+				 LocalConfig::tableMaxH, 
+				 LocalConfig::tableMinS, 
+				 LocalConfig::tableMaxS,
+				 LocalConfig::tableMinV,
+				 LocalConfig::tableMaxV, 
+				 LocalConfig::tableNeg);
 
     if (LocalConfig::debugging)
       std::cout<<"Set up huefilter."<<std::endl;
