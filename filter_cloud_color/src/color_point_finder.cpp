@@ -123,14 +123,34 @@ void initBoxFilter (ColorCloudPtr cloud) {
   Callback to store last message.
 */
 void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
+  
+  if (LocalConfig::debugging)
+    std::cout<<"Start of callback."<<std::endl;
+
   fromROSMsg(*msg, *cloud_pcl);
+
+  if (LocalConfig::debugging)
+    std::cout<<"Before entering if to call initBoxFilter"<<std::endl;
+
   if (!boxProp.m_init)  {
     hueFilter_wrapper hue_filter(LocalConfig::tableMinHue, 
 				 LocalConfig::tableMaxHue, 
-				 0, 255, 0, 255, true);
+				 0, 255, 0, 255, false);
+
+    if (LocalConfig::debugging)
+      std::cout<<"Set up huefilter."<<std::endl;
+
     ColorCloudPtr cloud_color (new ColorCloud());
-    hue_filter.filter(cloud_color, cloud_pcl);
+    hue_filter.filter(cloud_pcl, cloud_color);
+
+    if (LocalConfig::debugging)
+      std::cout<<"Finished hue filter"<<std::endl;
+
     cloud_color = clusterFilter(cloud_color, 0.01, 100);
+
+    if (LocalConfig::debugging)
+      std::cout<<"Clustering complete"<<std::endl;
+
     if (cloud_color->size() < 50) {
       ROS_ERROR("The table cannot be seen.");
     } else {
@@ -138,6 +158,10 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     }
   } 
   pending = true;
+
+  if (LocalConfig::debugging)
+    std::cout<<"End of callback."<<std::endl;
+
 }
 
 /*
@@ -166,7 +190,7 @@ void createFilter (filter_cascader &cascader) {
   oBoxFilter->setMins(boxProp.m_mins);
   oBoxFilter->setMaxes(boxProp.m_maxes);
 
-  cascader.appendFilter(oBoxFilter);
+  //  cascader.appendFilter(oBoxFilter);
  
   hue_filter->setMinHue(LocalConfig::minH);
   hue_filter->setMaxHue(LocalConfig::maxH);
