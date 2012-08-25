@@ -61,6 +61,8 @@ struct {
   btTransform m_trans;
 } boxProp;
 
+pcl::visualization::CloudViewer viewer ("Visualizer");
+
 std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
 float LocalConfig::downsample = 0.008;
 int LocalConfig::tableMaxHue = 10;
@@ -143,6 +145,8 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     ColorCloudPtr cloud_color (new ColorCloud());
     hue_filter.filter(cloud_pcl, cloud_color);
 
+    viewer.showCloud(cloud_color);
+
     if (LocalConfig::debugging)
       std::cout<<"Finished hue filter"<<std::endl;
 
@@ -217,6 +221,7 @@ void makeIntoOne (std::vector< std::vector <vectype> > *in,
   }
 }
 
+
 int main (int argc, char* argv[]) {
   Parser parser;
   parser.addGroup(LocalConfig());
@@ -256,8 +261,6 @@ int main (int argc, char* argv[]) {
     std::cout<<"Setting up viewer and starting filters."<<std::endl;
   }
 
-  pcl::visualization::CloudViewer viewer ("Visualizer");
-
   while (ros::ok()) {        
     ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
 
@@ -275,7 +278,7 @@ int main (int argc, char* argv[]) {
     //std::vector < std::vector <ColorPoint> > 
 
     //viewer.showCloud(cloud_pcl_filtered);
-    viewer.showCloud(pc2);
+    //    viewer.showCloud(pc2);
 
     if (LocalConfig::debugging)
       std::cout<<"After filtering."<<std::endl;    
