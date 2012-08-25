@@ -59,7 +59,7 @@ set(TF_LIBRARY_DIRS "${TF_PATH}/lib")
 set(BULLET_DIR ${FILTER_COLOR_CLOUD_DIR}/lib/bullet-2.79)
 set(BULLET_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/bullet")
 set(BULLET_INCLUDE_DIRS "${BULLET_PATH}/include")
-set(BULLET_LIBS BulletFileLoader BulletSoftBody BulletDynamics BulletCollision LinearMath HACD)
+set(BULLET_LIBS BulletDynamics BulletCollision LinearMath)
 #set(BULLET_LIBRARY_DIRS "${BULLET_PATH}/lib")
 
 # Set paths for CV_BRIDGE
