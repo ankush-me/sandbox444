@@ -13,6 +13,8 @@
 /* Parent wrapper class for filter functions.
  Children of filter_wrapper must contain the function "filter" 
  to suit the actual filter it is wrapping. */
+using namespace Eigen;
+
 template<typename PointT> 
 class filter_wrapper {
 public:
@@ -267,6 +269,39 @@ public:
   void filter (const ColorCloudPtr in, ColorCloudPtr out) {
     ColorCloudPtr filtered_pc =  removeOutliers(in, _std_threshold,
 						_num_neighbors);
+    *out = *filtered_pc;
+  }
+};
+
+
+/** Retains points only within an oriented box. Must specify origin
+    and opposite corners of box. */
+class orientedBoxFilter_wrapper : public filter_wrapper<ColorPoint> {
+  Matrix3f _ori;
+  Vector3f _mins;
+  Vector3f _maxes;
+
+public:
+
+ orientedBoxFilter_wrapper(): _ori(), _mins(), _maxes() {};
+
+ orientedBoxFilter_wrapper(const Matrix3f ori, 
+			   const Vector3f mins, 
+			   const Vector3f maxes): 
+  _ori(ori),_mins(mins), _maxes(maxes) {};
+
+  inline void setOrigin (const Matrix3f ori) {_ori = ori;}
+  inline Matrix3f getOrigin () {return _ori;}
+
+  inline void setMins (const Vector3f mins) {_mins = mins;}
+  inline Vector3f getMins () {return _mins;}
+
+  inline void setMaxes (const Vector3f maxes) {_maxes = maxes;}
+  inline Vector3f getMaxes () {return _maxes;}
+
+  void filter (const ColorCloudPtr in, ColorCloudPtr out) {
+    ColorCloudPtr filtered_pc =  orientedBoxFilter(in, _ori,
+						   _mins, _maxes);
     *out = *filtered_pc;
   }
 };
