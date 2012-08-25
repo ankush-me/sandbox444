@@ -155,6 +155,16 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     std::cout<<"Before entering if to call initBoxFilter"<<std::endl;
 
   if (!boxProp.m_init)  {
+    
+    if (LocalConfig::debugging) {
+      std::cout<<"tmih: "<<LocalConfig::tableMinH<<std::endl;
+      std::cout<<"tmah: "<<LocalConfig::tableMaxH<<std::endl;
+      std::cout<<"tmis: "<<LocalConfig::tableMinS<<std::endl;
+      std::cout<<"tmas: "<<LocalConfig::tableMaxS<<std::endl;
+      std::cout<<"tmiv: "<<LocalConfig::tableMinV<<std::endl;
+      std::cout<<"tmav: "<<LocalConfig::tableMaxV<<std::endl;
+    }
+
     hueFilter_wrapper hue_filter(LocalConfig::tableMinH, 
 				 LocalConfig::tableMaxH, 
 				 LocalConfig::tableMinS, 
