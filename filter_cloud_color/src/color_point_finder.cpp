@@ -326,9 +326,8 @@ int main (int argc, char* argv[]) {
     //ColorCloudPtr pc2 (new ColorCloud (*cloud_pcl_filtered, colorCluster));
     //std::vector < std::vector <ColorPoint> > 
 
-    //if (!LocalConfig::debugging)
     viewer.showCloud(cloud_pcl_filtered);
-    //    viewer.showCloud(pc2);
+    //viewer.showCloud(pc2);
 
     if (LocalConfig::oldDebugging)
       std::cout<<"After filtering."<<std::endl;    
