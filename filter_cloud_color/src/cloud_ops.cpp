@@ -251,8 +251,11 @@ ColorCloudPtr getBiggestCluster(ColorCloudPtr in, float tol) {
   for (int i=0; i < cluster_inds.size(); i++) sizes(i) = cluster_inds[i].size();
   int iBest;
   sizes.maxCoeff(&iBest);
+  
+  /*
   cout << "sizes: " << sizes.transpose() << endl;
   cout << iBest << endl;
+  */
   return extractInds(in, cluster_inds[iBest]);
 
 }
