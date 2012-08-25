@@ -121,10 +121,6 @@ void initBoxFilter (ColorCloudPtr cloud) {
   yax.normalize();
   Vector3f zax = xax.cross(yax);
 
-  float zsgn = -1;
-  xax *= zsgn;
-  zax *= zsgn;
-
   Matrix3f m_axes;
 
   m_axes.col(0) = xax;
