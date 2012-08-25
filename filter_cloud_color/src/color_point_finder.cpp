@@ -7,10 +7,7 @@
 
 #include "filter_wrapper.h"
 #include "utils/config.h"
-#include "cloud_ops.h"
 #include "get_table2.h"
-#include "plane_finding.h"
-#include "geom.h"
 #include "utils/conversions.h"
 
 using namespace Eigen;
