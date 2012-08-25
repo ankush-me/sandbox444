@@ -11,10 +11,8 @@
   <depend package="roscpp"/>
   <depend package="surgical_msgs"/>
   <depend package="geometry_msgs"/>
-  <depend package="pcl"/>
   <depend package="opencv2"/>
   <depend package="cv_bridge"/>
-
 </package>
 
 
