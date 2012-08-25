@@ -137,7 +137,7 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   if (!boxProp.m_init)  {
     hueFilter_wrapper hue_filter(LocalConfig::tableMinHue, 
 				 LocalConfig::tableMaxHue, 
-				 0, 255, 0, 255, true);
+				 0, 255, 0, 255, false);
 
     if (LocalConfig::debugging)
       std::cout<<"Set up huefilter."<<std::endl;
