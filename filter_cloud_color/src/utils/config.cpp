@@ -1,4 +1,4 @@
-#include "config.h"
+#include "utils/config.h"
 #include "utils/logging.h"
 #include <log4cplus/logger.h>
 

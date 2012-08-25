@@ -8,6 +8,9 @@
 #include "filter_wrapper.h"
 #include "utils/config.h"
 #include "cloud_ops.h"
+#include "get_table2.h"
+
+using namespace Eigen;
 
 /* 
    Configuration for command line options
@@ -16,6 +19,10 @@
 struct LocalConfig : Config {
   static std::string pcTopic;
   static float downsample;
+  static int tableMaxHue;
+  static int tableMinHue;
+  static float zClipHigh;
+  static float zClipLow;
   static int maxH;
   static int minH;
   static int maxS;
@@ -27,6 +34,10 @@ struct LocalConfig : Config {
   LocalConfig() : Config() {
     params.push_back(new Parameter<std::string>("pcTopic", &pcTopic, "Point Cloud Topic"));
     params.push_back(new Parameter<float>("downsample", &downsample, "Downsampling"));
+    params.push_back(new Parameter<int>("tableMaxHue", &tableMaxHue, "Maximum table hue"));
+    params.push_back(new Parameter<int>("tableMinHue", &tableMinHue, "Minimum table hue"));
+    params.push_back(new Parameter<float>("zClipHigh", &zClipHigh, "Clip above this"));
+    params.push_back(new Parameter<float>("zClipLow", &zClipLow, "Clip below this"));
     params.push_back(new Parameter<int>("maxH", &maxH, "Maximum hue"));
     params.push_back(new Parameter<int>("minH", &minH, "Minimum hue"));
     params.push_back(new Parameter<int>("maxS", &maxS, "Maximum saturation"));
@@ -37,8 +48,17 @@ struct LocalConfig : Config {
   }
 };
 
+struct {
+  bool m_init;
+  Matrix3f m_axes;
+  Vector3f m_mins, m_maxes;
+  btTransform m_trans;
+} boxProp;
+
 std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
 float LocalConfig::downsample = 0.008;
+int LocalConfig::tableMaxHue = 10;
+int LocalConfig::tableMinHue = 350;
 int LocalConfig::maxH = 180;
 int LocalConfig::minH = 0;
 int LocalConfig::maxS = 255;
@@ -51,10 +71,61 @@ static ColorCloudPtr cloud_pcl (new ColorCloud);
 bool pending = false;
 
 /*
+  Initializing values for the box filter
+*/
+void initBoxFilter (ColorCloudPtr cloud) {
+  MatrixXf corners = getTableCornersRansac(cloud);
+  Vector3f xax = corners.row(1) - corners.row(0);
+  xax.normalize();
+  Vector3f yax = corners.row(3) - corners.row(0);
+  yax.normalize();
+  Vector3f zax = xax.cross(yax);
+
+    //if chess_board frame id exists, then z axis is already pointing up
+  float zsgn = -1;
+  xax *= zsgn;
+  zax *= zsgn; // so z axis points up
+
+  boxProp.m_axes.col(0) = xax;
+  boxProp.m_axes.col(1) = yax;
+  boxProp.m_axes.col(2) = zax;
+  
+  MatrixXf rotCorners = corners * boxProp.m_axes;
+  
+  boxProp.m_mins = rotCorners.colwise().minCoeff();
+  boxProp.m_maxes = rotCorners.colwise().maxCoeff();
+  boxProp.m_mins(0) += 0.03;
+  boxProp.m_mins(1) += 0.03;
+  boxProp.m_maxes(0) -= 0.03;
+  boxProp.m_maxes(1) -= 0.03;
+  boxProp.m_mins(2) = rotCorners(0,2) + LocalConfig::zClipLow;
+  boxProp.m_maxes(2) = rotCorners(0,2) + LocalConfig::zClipHigh;
+  
+  boxProp.m_trans.setBasis(toBulletMatrix(boxProp.m_axes));
+  boxProp.m_trans.setOrigin(btVector3(corners(0,0), corners(0,1), corners(0,2)));
+
+  boxProp.m_init = true;
+
+}
+
+
+/*
   Callback to store last message.
 */
 void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   fromROSMsg(*msg, *cloud_pcl);
+
+  if (!boxProp.m_init)  {
+    hueFilter_wrapper hue_filter(LocalConfig::tableMinHue, LocalConfig::tableMaxHue, 0, 255, 0, 255, true);
+    ColorCloudPtr cloud_color (new ColorCloud());
+    hue_filter.filter(cloud_color, cloud_pcl);
+    cloud_color = clusterFilter(cloud_color, 0.01, 100);
+    if (cloud_color->size() < 50) {
+      ROS_ERROR("The table cannot be seen.");
+    } else {
+      initBoxFilter (cloud_color);
+    }
+  }  
   pending = true;
 }
 
@@ -86,6 +157,10 @@ void createFilter (filter_cascader &cascader) {
   cascader.appendFilter(outlier_remover);
 }
 
+/*
+  Given a vector of vectors, combines to form one vector
+*/
+
 template <typename vectype>
 void makeIntoOne (std::vector< std::vector <vectype> > *in, std::vector <vectype> *out) {
   for (int i = 0; i < in->size(); i++) {
@@ -115,34 +190,10 @@ int main (int argc, char* argv[]) {
   filter_cascader cascader;
   createFilter(cascader);
 
-  if (LocalConfig::debugging)
+  if (LocalConfig::debugging) {
     std::cout<<"Finished setting up the filter."<<std::endl;
-  
-  ////////// Setting up the filter ///////////////
-  /* 
-  if (LocalConfig::debugging)
-    std::cout<<LocalConfig::downsample<<std::endl;
-
-  downsample_wrapper downsampler(LocalConfig::downsample);
-  hueFilter_wrapper hue_filter;
-  removeOutliers_wrapper outlier_remover;
-
-  // Maybe isolate only some parts of the point cloud?
-  hue_filter.setMinHue(LocalConfig::minH);
-  hue_filter.setMaxHue(LocalConfig::maxH);
-  hue_filter.setMaxSat(LocalConfig::maxS);
-  hue_filter.setMinSat(LocalConfig::minS);
-  hue_filter.setMaxVal(LocalConfig::maxV);
-  hue_filter.setMinVal(LocalConfig::minV);
-  
-  cascader.appendFilter(&downsampler);
-  cascader.appendFilter(&hue_filter);
-  cascader.appendFilter(&outlier_remover);
-  */
-  ////////////////////////////////////////////////
-
-  if (LocalConfig::debugging)
     std::cout<<"Waiting for the first message."<<std::endl;
+  }
 
   while (!pending) {
     ros::spinOnce();

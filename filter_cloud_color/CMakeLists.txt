@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(Filter)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
-set(SANDBOX444_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(FILTER_COLOR_CLOUD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
 #-------------------------- Generally useful function ------------------
@@ -55,8 +55,11 @@ set(TF_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/geometry/tf")
 set(TF_INCLUDE_DIRS "${TF_PATH}/include")
 set(TF_LIBRARY_DIRS "${TF_PATH}/lib")
 
+# Bullet stuff
+set(BULLET_DIR ${FILTER_COLOR_CLOUD_DIR}/lib/bullet-2.79)
 set(BULLET_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/bullet")
 set(BULLET_INCLUDE_DIRS "${BULLET_PATH}/include")
+set(BULLET_LIBS BulletFileLoader BulletSoftBody BulletDynamics BulletCollision LinearMath HACD)
 #set(BULLET_LIBRARY_DIRS "${BULLET_PATH}/lib")
 
 # Set paths for CV_BRIDGE
@@ -68,7 +71,8 @@ set(CV_BRIDGE_LIBRARY_DIRS "${CV_BRIDGE_PATH}/lib")
 set(OpenCV_DIR "/opt/ros/$ENV{ROS_DISTRO}/share/OpenCV")
 find_package(OpenCV REQUIRED)
 
-set(LOG4CPLUS_DIR ${SANDBOX444_SOURCE_DIR}/lib/log4cplus-1.1.0-rc3)
+# Set path for LOG4CPLUS
+set(LOG4CPLUS_DIR ${FILTER_COLOR_CLOUD_DIR}/lib/log4cplus-1.1.0-rc3)
 set(LOG4CPLUS_INCLUDE_DIRS ${LOG4CPLUS_DIR}/include ${CMAKE_BINARY_DIR}/include)
 set(LOG4CPLUS_LIBRARY "log4cplus")
 
@@ -86,8 +90,10 @@ find_package(ROS
 include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
                     ${ROS_INCLUDE_DIRS}
                     ${TF_INCLUDE_DIRS} ${BULLET_INCLUDE_DIRS}
-		    ${CMAKE_SOURCE_DIR}/src
-		    ${CV_BRIDGE_INCLUDE_DIRS})
+		    ${FILTER_COLOR_CLOUD_DIR}/src
+		    ${FILTER_COLOR_CLOUD_DIR}/include
+		    ${CV_BRIDGE_INCLUDE_DIRS}
+		    ${EIGEN3_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS} ${TF_LIBRARY_DIRS}
                  ${CMAKE_SOURCE_DIR}/src
 		 ${CV_BRIDGE_LIBRARY_DIRS})
