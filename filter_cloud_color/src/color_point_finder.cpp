@@ -66,7 +66,7 @@ pcl::visualization::CloudViewer viewer ("Visualizer");
 std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
 float LocalConfig::downsample = 0.008;
 int LocalConfig::tableMaxHue = 10;
-int LocalConfig::tableMinHue = 350;
+int LocalConfig::tableMinHue = 170;
 float LocalConfig::zClipLow = 0.0;
 float LocalConfig::zClipHigh = 0.5;
 int LocalConfig::maxH = 180;
@@ -148,8 +148,10 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     if (LocalConfig::debugging)
       std::cout<<"Finished hue filter"<<std::endl;
 
-    cloud_color = clusterFilter(cloud_color, 0.01, 100);
     viewer.showCloud(cloud_color);
+
+    cloud_color = clusterFilter(cloud_color, 0.01, 100);
+
 
     if (LocalConfig::debugging)
       std::cout<<"Clustering complete"<<std::endl;
