@@ -9,6 +9,8 @@
 #include "utils/config.h"
 #include "cloud_ops.h"
 #include "get_table2.h"
+#include "plane_finding.h"
+#include "geom.h"
 #include "utils/conversions.h"
 
 using namespace Eigen;
@@ -34,7 +36,9 @@ struct LocalConfig : Config {
   static int minS;
   static int maxV;
   static int minV;
+  static bool useHF;
   static int debugging;
+  static int oldDebugging;
 
   LocalConfig() : Config() {
     params.push_back(new Parameter<std::string>
@@ -65,8 +69,11 @@ struct LocalConfig : Config {
     params.push_back(new Parameter<int>("minS", &minS, "Minimum saturation"));
     params.push_back(new Parameter<int>("maxV", &maxV, "Maximum value"));
     params.push_back(new Parameter<int>("minV", &minV, "Minimum value"));
+    params.push_back(new Parameter<bool>("useHF", &useHF, "Use hue filter"));
     params.push_back(new Parameter<int>
 		     ("debugging", &debugging, "Debug flag: 1/0 - Yes/No"));
+    params.push_back(new Parameter<int>
+		     ("oldDebugging", &oldDebugging, "Old debug flag."));
   }
 };
 
@@ -76,18 +83,16 @@ struct {
   btTransform m_trans;
 } boxProp;
 
-pcl::visualization::CloudViewer viewer ("Visualizer");
-
 std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
 float LocalConfig::downsample = 0.008;
 int LocalConfig::tableMaxH = 10;
 int LocalConfig::tableMinH = 170;
 int LocalConfig::tableMaxS = 255;
-int LocalConfig::tableMinS = 0;
+int LocalConfig::tableMinS = 150;
 int LocalConfig::tableMaxV = 255;
 int LocalConfig::tableMinV = 0;
-bool LocalConfig::tableNeg = true;
-float LocalConfig::zClipLow = 0.0;
+bool LocalConfig::tableNeg = false;
+float LocalConfig::zClipLow = -0.05;
 float LocalConfig::zClipHigh = 0.5;
 int LocalConfig::maxH = 180;
 int LocalConfig::minH = 0;
@@ -95,27 +100,30 @@ int LocalConfig::maxS = 255;
 int LocalConfig::minS = 0;
 int LocalConfig::maxV = 255;
 int LocalConfig::minV = 0;
+bool LocalConfig::useHF = false;
 int LocalConfig::debugging = 0;
+int LocalConfig::oldDebugging = 0;
   
-static ColorCloudPtr cloud_pcl (new ColorCloud);
-bool pending = false;
-
 /*
-  Initializing values for the box filter
+  Initializing values for the box filter.
+  Taken from preprocessor node's initTable.
 */
-
 void initBoxFilter (ColorCloudPtr cloud) {
+  
   MatrixXf corners = getTableCornersRansac(cloud);
+
+  if (LocalConfig::debugging)
+    std::cout<<"Corners: "<<corners<<std::endl;
+
   Vector3f xax = corners.row(1) - corners.row(0);
   xax.normalize();
   Vector3f yax = corners.row(3) - corners.row(0);
   yax.normalize();
   Vector3f zax = xax.cross(yax);
 
-    //if chess_board frame id exists, then z axis is already pointing up
   float zsgn = -1;
   xax *= zsgn;
-  zax *= zsgn; // so z axis points up
+  zax *= zsgn;
 
   Matrix3f m_axes;
 
@@ -142,27 +150,30 @@ void initBoxFilter (ColorCloudPtr cloud) {
 }
 
 /*
-  Callback to store last message.
+  Variables and callback to store last message.
 */
+static ColorCloudPtr cloud_pcl (new ColorCloud);
+bool pending = false;
+
 void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   
-  if (LocalConfig::debugging)
+  if (LocalConfig::oldDebugging)
     std::cout<<"Start of callback."<<std::endl;
 
   fromROSMsg(*msg, *cloud_pcl);
 
-  if (LocalConfig::debugging)
+  if (LocalConfig::oldDebugging)
     std::cout<<"Before entering if to call initBoxFilter"<<std::endl;
 
   if (!boxProp.m_init)  {
     
     if (LocalConfig::debugging) {
-      std::cout<<"tmih: "<<LocalConfig::tableMinH<<std::endl;
-      std::cout<<"tmah: "<<LocalConfig::tableMaxH<<std::endl;
-      std::cout<<"tmis: "<<LocalConfig::tableMinS<<std::endl;
-      std::cout<<"tmas: "<<LocalConfig::tableMaxS<<std::endl;
-      std::cout<<"tmiv: "<<LocalConfig::tableMinV<<std::endl;
-      std::cout<<"tmav: "<<LocalConfig::tableMaxV<<std::endl;
+      std::cout<<"tminh: "<<LocalConfig::tableMinH<<std::endl;
+      std::cout<<"tmaxh: "<<LocalConfig::tableMaxH<<std::endl;
+      std::cout<<"tmins: "<<LocalConfig::tableMinS<<std::endl;
+      std::cout<<"tmaxs: "<<LocalConfig::tableMaxS<<std::endl;
+      std::cout<<"tminv: "<<LocalConfig::tableMinV<<std::endl;
+      std::cout<<"tmaxv: "<<LocalConfig::tableMaxV<<std::endl;
     }
 
     hueFilter_wrapper hue_filter(LocalConfig::tableMinH, 
@@ -182,33 +193,29 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     if (LocalConfig::debugging)
       std::cout<<"Finished hue filter"<<std::endl;
 
-    viewer.showCloud(cloud_color);
-
-    cloud_color = clusterFilter(cloud_color, 0.01, 100);
-
+    cloud_color = clusterFilter(cloud_color, 0.01, 100);      
 
     if (LocalConfig::debugging)
       std::cout<<"Clustering complete"<<std::endl;
 
-    if (cloud_color->size() < 50) {
+    if (cloud_color->size() < 50)
       ROS_ERROR("The table cannot be seen.");
-    } else {
+    else
       initBoxFilter (cloud_color);
-    }
   } 
   pending = true;
 
-  if (LocalConfig::debugging)
+  if (LocalConfig::oldDebugging)
     std::cout<<"End of callback."<<std::endl;
 
 }
 
 /*
-  Append filters to your cascader
-  Fix: Issue with pointers
+  Append filters to a cascader.
 */
 void createFilter (filter_cascader &cascader) {
-  
+
+  //Downsampler
   if (LocalConfig::downsample) {
     boost::shared_ptr<downsample_wrapper> 
       downsampler (new downsample_wrapper());
@@ -216,31 +223,37 @@ void createFilter (filter_cascader &cascader) {
     cascader.appendFilter(downsampler);
   }
 
+  //Oriented Box Filter
   boost::shared_ptr<orientedBoxFilter_wrapper> 
     oBoxFilter (new orientedBoxFilter_wrapper());
-  boost::shared_ptr<hueFilter_wrapper> 
-    hue_filter (new hueFilter_wrapper());
-  boost::shared_ptr<removeOutliers_wrapper> 
-    outlier_remover (new removeOutliers_wrapper());
-
-  // Maybe isolate only some parts of the point 
   
   oBoxFilter->setOrigin(toEigenMatrix(boxProp.m_trans.getBasis()));
   oBoxFilter->setMins(boxProp.m_mins);
   oBoxFilter->setMaxes(boxProp.m_maxes);
+    
+  cascader.appendFilter(oBoxFilter);
 
-  //  cascader.appendFilter(oBoxFilter);
- 
-  hue_filter->setMinHue(LocalConfig::minH);
-  hue_filter->setMaxHue(LocalConfig::maxH);
-  hue_filter->setMaxSat(LocalConfig::maxS);
-  hue_filter->setMinSat(LocalConfig::minS);
-  hue_filter->setMaxVal(LocalConfig::maxV);
-  hue_filter->setMinVal(LocalConfig::minV);
-  
-  cascader.appendFilter(hue_filter);
+  //Hue Filter
+  if (LocalConfig::useHF) {
+    boost::shared_ptr<hueFilter_wrapper> 
+      hue_filter (new hueFilter_wrapper());
+
+    hue_filter->setMinHue(LocalConfig::minH);
+    hue_filter->setMaxHue(LocalConfig::maxH);
+    hue_filter->setMaxSat(LocalConfig::maxS);
+    hue_filter->setMinSat(LocalConfig::minS);
+    hue_filter->setMaxVal(LocalConfig::maxV);
+    hue_filter->setMinVal(LocalConfig::minV);
+    
+    cascader.appendFilter(hue_filter);
+  }
+
+  //Outlier remover
+  boost::shared_ptr<removeOutliers_wrapper> 
+    outlier_remover (new removeOutliers_wrapper());
   
   cascader.appendFilter(outlier_remover);
+  
 }
 
 /*
@@ -275,9 +288,6 @@ int main (int argc, char* argv[]) {
   if (LocalConfig::debugging)
     std::cout<<"Setting up the filter."<<std::endl;
 
-  filter_cascader cascader;
-  createFilter(cascader);
-
   if (LocalConfig::debugging) {
     std::cout<<"Finished setting up the filter."<<std::endl;
     std::cout<<"Waiting for the first message."<<std::endl;
@@ -291,31 +301,36 @@ int main (int argc, char* argv[]) {
 	("caught signal while waiting for first message");
   }
 
+  filter_cascader cascader;
+  createFilter(cascader);
+
   if (LocalConfig::debugging) {
     std::cout<<"First message found.";
     std::cout<<"Setting up viewer and starting filters."<<std::endl;
   }
 
-  while (ros::ok()) {        
+  pcl::visualization::CloudViewer viewer ("Visualizer");
+  
+  while (ros::ok()) {
     ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
 
-    if (LocalConfig::debugging)
+    if (LocalConfig::oldDebugging)
       std::cout<<"Before filtering."<<std::endl;    
-    
-    cascader.filter(cloud_pcl, cloud_pcl_filtered);
 
+    cascader.filter(cloud_pcl, cloud_pcl_filtered);
+      
     std::vector < std::vector <int> > 
       colorClusters = findClusters (cloud_pcl_filtered);
-
-    std::vector < int > colorCluster;
-    makeIntoOne (&colorClusters, &colorCluster);
-    ColorCloudPtr pc2 (new ColorCloud (*cloud_pcl_filtered, colorCluster));
+    //std::vector < int > colorCluster;
+    //makeIntoOne (&colorClusters, &colorCluster);
+    //ColorCloudPtr pc2 (new ColorCloud (*cloud_pcl_filtered, colorCluster));
     //std::vector < std::vector <ColorPoint> > 
 
-    //viewer.showCloud(cloud_pcl_filtered);
+    //if (!LocalConfig::debugging)
+    viewer.showCloud(cloud_pcl_filtered);
     //    viewer.showCloud(pc2);
 
-    if (LocalConfig::debugging)
+    if (LocalConfig::oldDebugging)
       std::cout<<"After filtering."<<std::endl;    
 
     //sensor_msgs::PointCloud2 cloud_ros_filtered;
