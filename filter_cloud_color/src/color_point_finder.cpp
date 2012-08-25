@@ -137,7 +137,7 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   if (!boxProp.m_init)  {
     hueFilter_wrapper hue_filter(LocalConfig::tableMinHue, 
 				 LocalConfig::tableMaxHue, 
-				 0, 255, 0, 255, false);
+				 0, 255, 0, 255, true);
 
     if (LocalConfig::debugging)
       std::cout<<"Set up huefilter."<<std::endl;
@@ -145,12 +145,11 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
     ColorCloudPtr cloud_color (new ColorCloud());
     hue_filter.filter(cloud_pcl, cloud_color);
 
-    viewer.showCloud(cloud_color);
-
     if (LocalConfig::debugging)
       std::cout<<"Finished hue filter"<<std::endl;
 
     cloud_color = clusterFilter(cloud_color, 0.01, 100);
+    viewer.showCloud(cloud_color);
 
     if (LocalConfig::debugging)
       std::cout<<"Clustering complete"<<std::endl;
