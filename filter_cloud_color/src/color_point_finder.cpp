@@ -139,6 +139,13 @@ void initBoxFilter (ColorCloudPtr cloud) {
   boxProp.m_trans.setOrigin
     (btVector3(corners(0,0), corners(0,1), corners(0,2)));
 
+  if (LocalConfig::debugging) {
+    std::cout<<"boxProp.m_trans.getBasis(): ";
+    std::cout<<toEigenMatrix(boxProp.m_trans.getBasis())<<std::endl;
+    std::cout<<"boxProp.m_mins: "<<boxProp.m_mins<<std::endl;
+    std::cout<<"boxProp.m_maxes: "<<boxProp.m_maxes<<std::endl;
+  }
+
   boxProp.m_init = true;
 }
 
