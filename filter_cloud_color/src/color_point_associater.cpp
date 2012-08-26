@@ -1,3 +1,9 @@
+/* TODO:
+   Figure out how to move information between nodes.
+   Finish make_unit.hpp to return a proper unit.
+   Maybe take into account where holes/cuts were last iteration.
+*/
+
 #include <ros/topic.h>
 #include <ros/ros.h>
 
@@ -11,6 +17,7 @@
 #include "utils/conversions.h"
 
 #include "surgical_units.hpp"
+#include "make_unit.hpp"
 
 using namespace Eigen;
 
@@ -37,7 +44,6 @@ struct LocalConfig : Config {
   static int minV;
   static bool useHF;
   static int debugging;
-  static int oldDebugging;
 
   LocalConfig() : Config() {
     params.push_back(new Parameter<std::string>
@@ -71,17 +77,22 @@ struct LocalConfig : Config {
     params.push_back(new Parameter<bool>("useHF", &useHF, "Use hue filter"));
     params.push_back(new Parameter<int>
 		     ("debugging", &debugging, "Debug flag: 1/0 - Yes/No"));
-    params.push_back(new Parameter<int>
-		     ("oldDebugging", &oldDebugging, "Old debug flag."));
   }
 };
 
+/* 
+   Structure for storing the values to create the 
+   oriented box filter.
+*/
 struct {
   bool m_init;
   Vector3f m_mins, m_maxes;
   btTransform m_trans;
 } boxProp;
 
+/*
+  Default values for command line options.
+*/
 std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
 float LocalConfig::downsample = 0.008;
 int LocalConfig::tableMaxH = 10;
@@ -101,18 +112,102 @@ int LocalConfig::maxV = 255;
 int LocalConfig::minV = 0;
 bool LocalConfig::useHF = false;
 int LocalConfig::debugging = 0;
-int LocalConfig::oldDebugging = 0;
   
+/* 
+   Variables for the callback.
+*/
+static ColorCloudPtr cloud_pcl (new ColorCloud);
+bool pending = false;
+
+/*
+  Variables for storing the holes/cuts/suture.
+*/
+vector<Hole::Ptr> holes;
+vector<Cut::Ptr> cuts;
+Suture::Ptr suture;
+
+//Scale for stddev of hue to find points of similar color
+int HUE_STD_SCALE = 2;
+/*
+  Returns a point cloud displaying only the hole specified by the index.
+  Runs a hueFilter and assumes holes are of unique colors.
+*/
+ColorCloudPtr showHole (ColorCloudPtr in, int index) {
+  Hole::Ptr hole = holes[index-1];
+  
+  uint8_t hole_minH = hole->_H - HUE_STD_SCALE*hole->_Hstd;
+  uint8_t hole_maxH = hole->_H + HUE_STD_SCALE*hole->_Hstd;
+  uint8_t hole_minS = hole->_S - hole->_Sstd;
+  uint8_t hole_maxS = hole->_S + hole->_Sstd;
+  uint8_t hole_minV = hole->_V - hole->_Vstd;
+  uint8_t hole_maxV = hole->_V + hole->_Vstd;
+  
+  hueFilter_wrapper 
+    hole_HF (hole_minH, hole_maxH, hole_minS, hole_maxS,
+	     hole_minV, hole_maxV, false);
+
+  ColorCloudPtr out (new ColorCloud());
+  
+  hole_HF.filter(in, out);
+  
+  return out;
+}
+
+/*
+  Returns a point cloud displaying only the cut specified by the index.
+  Runs a hueFilter and assumes cuts are of unique colors.
+*/
+ColorCloudPtr showCut (ColorCloudPtr in, int index) {
+  Cut::Ptr cut = cuts[index-1];
+  
+  uint8_t cut_minH = cut->_H - HUE_STD_SCALE*cut->_Hstd;
+  uint8_t cut_maxH = cut->_H + HUE_STD_SCALE*cut->_Hstd;
+  uint8_t cut_minS = cut->_S - cut->_Sstd;
+  uint8_t cut_maxS = cut->_S + cut->_Sstd;
+  uint8_t cut_minV = cut->_V - cut->_Vstd;
+  uint8_t cut_maxV = cut->_V + cut->_Vstd;
+  
+  hueFilter_wrapper 
+    cut_HF (cut_minH, cut_maxH, cut_minS, cut_maxS,
+	     cut_minV, cut_maxV, false);
+
+  ColorCloudPtr out (new ColorCloud());
+  
+  cut_HF.filter(in, out);
+  
+  return out;
+}
+
+/*
+  Returns a point cloud displaying only the suture.
+  Runs a hueFilter and assumes the suture is of a unique color.
+*/
+ColorCloudPtr showSuture (ColorCloudPtr in) {
+
+  uint8_t suture_minH = suture->_H - HUE_STD_SCALE*suture->_Hstd;
+  uint8_t suture_maxH = suture->_H + HUE_STD_SCALE*suture->_Hstd;
+  uint8_t suture_minS = suture->_S - suture->_Sstd;
+  uint8_t suture_maxS = suture->_S + suture->_Sstd;
+  uint8_t suture_minV = suture->_V - suture->_Vstd;
+  uint8_t suture_maxV = suture->_V + suture->_Vstd;
+  
+  hueFilter_wrapper 
+    suture_HF (suture_minH, suture_maxH, suture_minS, suture_maxS,
+	     suture_minV, suture_maxV, false);
+
+  ColorCloudPtr out (new ColorCloud());
+  
+  suture_HF.filter(in, out);
+  
+  return out;
+}
+
 /*
   Initializing values for the box filter.
   Taken from preprocessor node's initTable.
 */
-void initBoxFilter (ColorCloudPtr cloud) {
-  
+void initBoxFilter (ColorCloudPtr cloud) {  
   MatrixXf corners = getTableCornersRansac(cloud);
-
-  if (LocalConfig::debugging)
-    std::cout<<"Corners: "<<corners<<std::endl;
 
   Vector3f xax = corners.row(1) - corners.row(0);
   xax.normalize();
@@ -141,43 +236,16 @@ void initBoxFilter (ColorCloudPtr cloud) {
   boxProp.m_trans.setOrigin
     (btVector3(corners(0,0), corners(0,1), corners(0,2)));
 
-  if (LocalConfig::debugging) {
-    std::cout<<"boxProp.m_trans.getBasis(): ";
-    std::cout<<toEigenMatrix(boxProp.m_trans.getBasis())<<std::endl;
-    std::cout<<"boxProp.m_mins: "<<boxProp.m_mins<<std::endl;
-    std::cout<<"boxProp.m_maxes: "<<boxProp.m_maxes<<std::endl;
-  }
-
   boxProp.m_init = true;
 }
 
 /*
-  Variables and callback to store last message.
+  Callback to store last message.
 */
-static ColorCloudPtr cloud_pcl (new ColorCloud);
-bool pending = false;
-
 void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
-  
-  if (LocalConfig::oldDebugging)
-    std::cout<<"Start of callback."<<std::endl;
-
   fromROSMsg(*msg, *cloud_pcl);
 
-  if (LocalConfig::oldDebugging)
-    std::cout<<"Before entering if to call initBoxFilter"<<std::endl;
-
   if (!boxProp.m_init)  {
-    
-    if (LocalConfig::debugging) {
-      std::cout<<"tminh: "<<LocalConfig::tableMinH<<std::endl;
-      std::cout<<"tmaxh: "<<LocalConfig::tableMaxH<<std::endl;
-      std::cout<<"tmins: "<<LocalConfig::tableMinS<<std::endl;
-      std::cout<<"tmaxs: "<<LocalConfig::tableMaxS<<std::endl;
-      std::cout<<"tminv: "<<LocalConfig::tableMinV<<std::endl;
-      std::cout<<"tmaxv: "<<LocalConfig::tableMaxV<<std::endl;
-    }
-
     hueFilter_wrapper hue_filter(LocalConfig::tableMinH, 
 				 LocalConfig::tableMaxH, 
 				 LocalConfig::tableMinS, 
@@ -186,19 +254,10 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 				 LocalConfig::tableMaxV, 
 				 LocalConfig::tableNeg);
 
-    if (LocalConfig::debugging)
-      std::cout<<"Set up huefilter."<<std::endl;
-
     ColorCloudPtr cloud_color (new ColorCloud());
     hue_filter.filter(cloud_pcl, cloud_color);
 
-    if (LocalConfig::debugging)
-      std::cout<<"Finished hue filter"<<std::endl;
-
     cloud_color = clusterFilter(cloud_color, 0.01, 100);      
-
-    if (LocalConfig::debugging)
-      std::cout<<"Clustering complete"<<std::endl;
 
     if (cloud_color->size() < 50)
       ROS_ERROR("The table cannot be seen.");
@@ -206,14 +265,10 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
       initBoxFilter (cloud_color);
   } 
   pending = true;
-
-  if (LocalConfig::oldDebugging)
-    std::cout<<"End of callback."<<std::endl;
-
 }
 
 /*
-  Append filters to a cascader.
+  Function to append filters to a cascader.
 */
 void createFilter (filter_cascader &cascader) {
 
@@ -259,9 +314,8 @@ void createFilter (filter_cascader &cascader) {
 }
 
 /*
-  Given a vector of vectors, combines to form one vector
+  Given a vector of vectors, combines to form one vector.
 */
-
 template <typename vectype>
 void makeIntoOne (std::vector< std::vector <vectype> > *in, 
 		  std::vector <vectype> *out) {
@@ -287,14 +341,6 @@ int main (int argc, char* argv[]) {
   //  nh.advertise<sensor_msgs::PointCloud2>
   //  (LocalConfig::camNS + "depth_registered/filtered_points", 5);
 
-  if (LocalConfig::debugging)
-    std::cout<<"Setting up the filter."<<std::endl;
-
-  if (LocalConfig::debugging) {
-    std::cout<<"Finished setting up the filter."<<std::endl;
-    std::cout<<"Waiting for the first message."<<std::endl;
-  }
-
   while (!pending) {
     ros::spinOnce();
     sleep(.001);
@@ -306,18 +352,10 @@ int main (int argc, char* argv[]) {
   filter_cascader cascader;
   createFilter(cascader);
 
-  if (LocalConfig::debugging) {
-    std::cout<<"First message found.";
-    std::cout<<"Setting up viewer and starting filters."<<std::endl;
-  }
-
   pcl::visualization::CloudViewer viewer ("Visualizer");
   
   while (ros::ok()) {
     ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
-
-    if (LocalConfig::oldDebugging)
-      std::cout<<"Before filtering."<<std::endl;    
 
     cascader.filter(cloud_pcl, cloud_pcl_filtered);
       
@@ -330,9 +368,6 @@ int main (int argc, char* argv[]) {
 
     viewer.showCloud(cloud_pcl_filtered);
     //viewer.showCloud(pc2);
-
-    if (LocalConfig::oldDebugging)
-      std::cout<<"After filtering."<<std::endl;    
 
     //sensor_msgs::PointCloud2 cloud_ros_filtered;
     //pcl::toROSMsg(*cloud_pcl_filtered, cloud_ros_filtered);

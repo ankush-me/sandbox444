@@ -74,12 +74,19 @@ struct LocalConfig : Config {
   }
 };
 
+/* 
+   Structure for storing the values to create the 
+   oriented box filter.
+*/
 struct {
   bool m_init;
   Vector3f m_mins, m_maxes;
   btTransform m_trans;
 } boxProp;
 
+/*
+  Default values for command line options.
+*/
 std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
 float LocalConfig::downsample = 0.008;
 int LocalConfig::tableMaxH = 10;
@@ -101,6 +108,12 @@ bool LocalConfig::useHF = false;
 int LocalConfig::debugging = 0;
 int LocalConfig::oldDebugging = 0;
   
+/*
+  Variables for the callback.
+*/
+static ColorCloudPtr cloud_pcl (new ColorCloud);
+bool pending = false;
+
 /*
   Initializing values for the box filter.
   Taken from preprocessor node's initTable.
@@ -150,11 +163,8 @@ void initBoxFilter (ColorCloudPtr cloud) {
 }
 
 /*
-  Variables and callback to store last message.
+  Callback to store the last message.
 */
-static ColorCloudPtr cloud_pcl (new ColorCloud);
-bool pending = false;
-
 void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   
   if (LocalConfig::oldDebugging)
@@ -259,7 +269,6 @@ void createFilter (filter_cascader &cascader) {
 /*
   Given a vector of vectors, combines to form one vector
 */
-
 template <typename vectype>
 void makeIntoOne (std::vector< std::vector <vectype> > *in, 
 		  std::vector <vectype> *out) {
