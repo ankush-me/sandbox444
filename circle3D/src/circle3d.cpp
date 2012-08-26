@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 #include <math.h>
 
-using namespace Eigen;
+//using namespace Eigen;
 
 class circle3d {
 private:
@@ -50,7 +50,7 @@ public:
     }
     
     Eigen::Vector3d normal = vec1.cross(vec2);
-    normal /= normal.norm();
+    normal.normalize();
 
     if (verbose) {
       std::cout<< "The plane normal found is: ("<<normal(0)<<","
@@ -62,8 +62,8 @@ public:
 
   /** Fits a circle to the given 2D _PTs and saves them
       in the CENTER and RADIUS. */
-  void get_circle(Vector2d &pt1, Vector2d &pt2, Vector2d &pt3,
-		  Vector2d &center, double &radius, bool verbose=false) {
+  void get_circle(Eigen::Vector2d &pt1, Eigen::Vector2d &pt2, Eigen::Vector2d &pt3,
+		  Eigen::Vector2d &center, double &radius, bool verbose=false) {
     Eigen::Matrix3d A(3,3);
     A << 2*pt1(0), 2*pt1(1), 1,
          2*pt2(0), 2*pt2(1), 1,
@@ -74,7 +74,7 @@ public:
 		      pt3.squaredNorm() );
 
     Eigen::Vector3d x = A.fullPivLu().solve(b);
-    center = Vector2d(x(0), x(1));
+    center = Eigen::Vector2d(x(0), x(1));
     radius = (pt1-center).norm();
     double relative_error = (A*x - b).norm() / b.norm();
 
@@ -88,14 +88,10 @@ public:
   void compute_circle3d(bool verbose=false) {
     _normal = get_plane_normal(verbose);
 
-    _x_axis = (_pt2-_pt1);
-    _z_axis = _normal;
-    _y_axis = _z_axis.cross(_x_axis);
+    _x_axis = (_pt2-_pt1).normalized();
+    _z_axis = _normal.normalized();
+    _y_axis = (_z_axis.cross(_x_axis)).normalized();
   
-    _x_axis /= _x_axis.norm();
-    _y_axis /= _y_axis.norm();
-    _z_axis /= _z_axis.norm();
-
     _rotation << _x_axis(0), _x_axis(1), _x_axis(2),
                  _y_axis(0), _y_axis(1), _y_axis(2),
                  _z_axis(0), _z_axis(1), _z_axis(2);
@@ -130,11 +126,16 @@ public:
   }
 
 
+  /** Flips the normal's direction. */
+  void flip_normal() {
+    _normal *= -1;
+  }
+
   /** Walks distance DIST on the circumference of the 3D circle,
       starting at the REFERENCE_PT, in the DIR direction.
       Returns the TRANSFORM of the destination point in the world frame. */
-  Vector3d extend_circumfrenece(Eigen::Vector3d reference_pt, double dist,
-				orientation dir) {
+  Eigen::MatrixXd extend_circumfrenece(Eigen::Vector3d reference_pt, double dist,
+				       orientation dir) {
     if (((_center - reference_pt).norm() - _radius) > 0.005
 	|| (_pt1 - reference_pt).dot(_normal) > 1e-5) {
       std::cout<<"Error: extend_circumference: Reference point, not on the circle."
@@ -144,34 +145,52 @@ public:
 
     Eigen::Vector3d center_local    =  _rotation*(_center + _translation);
     Eigen::Vector3d reference_local =  _rotation*(reference_pt + _translation);
-    Eigen::Vector3d center_to_ref = reference_local - center_local;
+    Eigen::Vector3d center_to_ref   = reference_local - center_local;
 
     double angle = (dir==CCW)? dist/_radius : -dist/_radius;
     Eigen::Rotation2Dd rot(angle);
-    Eigen::Vector2d target_local = rot*Eigen::Vector2d(center_to_ref(0), center_to_ref(1));
-    
+    Eigen::Vector2d target_circle_local = rot*Eigen::Vector2d(center_to_ref(0), center_to_ref(1));
+    Eigen::Vector3d target_local = Eigen::Vector3d(target_circle_local(0), target_circle_local(1),0) + center_local;
+    Eigen::Vector3d target_world = (_rotation.transpose()*target_local) - _translation;
+
     //finding the tangent at Target : numerical difference.
     double diff_angle = (dir==CCW)? (dist+0.001)/_radius : -(dist + 0.001)/_radius;
     Eigen::Rotation2Dd diff_rot(diff_angle);
-    Eigen::Vector2d tangent = (diff_rot*Eigen::Vector2d(center_to_ref(0), center_to_ref(1))) - target_local;
-    tangent/= tangent.norm();
+    Eigen::Vector2d tangent_circle = ( diff_rot*Eigen::Vector2d(center_to_ref(0), center_to_ref(1))
+				       - target_circle_local );
+    tangent_circle.normalize();
 
-    Eigen::Vector3d tangent_x(tangent(0), tangent(1), 0);
-    Eigen::Vector3d world_tangent_x = (_rotation.transpose()*tangent_x) - _translation;
+    Eigen::Vector3d tangent_local = Eigen::Vector3d(tangent_circle(0), tangent_circle(1), 0) + center_local;
+    Eigen::Vector3d world_tangent_x = (_rotation.transpose()*tangent_local);
     Eigen::Vector3d world_tangent_z = _normal;
     Eigen::Vector3d world_tangent_y = world_tangent_z.cross(world_tangent_x);
 
-    Eigen::Vector3d target_world = (_rotation.transpose()*Eigen::Vector3d(target_local(0), target_local(1),0)) - _translation;
+    world_tangent_x.normalize();
+    world_tangent_y.normalize();
+    world_tangent_z.normalize();
+
+
+    Eigen::Matrix3d world_to_target(3,3);
+    world_to_target << world_tangent_x.transpose(),
+                       world_tangent_y.transpose(),
+                       world_tangent_z.transpose();
+          
+    Eigen::MatrixXd homogenous_transform(4,4);
+    homogenous_transform << world_to_target,
+                            world_to_target*target_world,
+                            Eigen::RowVector4d(0,0,0,1);
+    return homogenous_transform;
   }
 };
 
 
 int main() {
-  Vector3d p(1,0,2);
-  Vector3d q(0,1,2);
-  Vector3d r(0,0,3);
+  Eigen::Vector3d p(1,0,2);
+  Eigen::Vector3d q(-1,0,2);
+  Eigen::Vector3d r(0,1,2);
   circle3d c3d(p,q,r);
   c3d.compute_circle3d(true);
-
+  Eigen::MatrixXd pt = c3d.extend_circumfrenece(p, 1.57079632679, circle3d::CCW);
+  std::cout<<"circum pt: "<<pt<<std::endl;
   return 0;
 }
