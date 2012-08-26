@@ -7,10 +7,10 @@
 
 #include "filter_wrapper.h"
 #include "utils/config.h"
-#include "get_table2.h"
+#include "get_table.h"
 #include "utils/conversions.h"
 
-#include "surgical_units.cpp"
+#include "surgical_units.hpp"
 
 using namespace Eigen;
 
@@ -143,7 +143,7 @@ void initBoxFilter (ColorCloudPtr cloud) {
 
   if (LocalConfig::debugging) {
     std::cout<<"boxProp.m_trans.getBasis(): ";
-    std::cout<<boxProp.m_trans.getBasis()<<std::endl;
+    std::cout<<toEigenMatrix(boxProp.m_trans.getBasis())<<std::endl;
     std::cout<<"boxProp.m_mins: "<<boxProp.m_mins<<std::endl;
     std::cout<<"boxProp.m_maxes: "<<boxProp.m_maxes<<std::endl;
   }

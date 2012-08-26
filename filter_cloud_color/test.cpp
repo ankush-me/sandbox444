@@ -7,12 +7,21 @@
 #include<stdio.h>
 #include<stdlib.h>
 
+using namespace Eigen;
+
 int main(int argc, char** argv) {
   std::string bag_file =
     "/home/ankush/sandbox/bulletsim/bagfiles/manual_trial4_filtered.bag";
   std::string bag_out =
     "/home/ankush/sandbox/bulletsim/bagfiles/manual_trial4_filtered1.bag";
   std::string cloud_topic = "/kinect1/depth_registered/points";
+
+
+  Matrix3f ori;
+  ori << -0.117324, 0.992971, 0.0156056,
+    0.681845, 0.091968, -0.725693,
+    -0.722027, -0.0745005, -0.687842;
+
 
   /* hueFilter_wrapper hue_filter;
   hue_filter.setMinHue(170);

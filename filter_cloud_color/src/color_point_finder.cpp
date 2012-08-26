@@ -7,7 +7,7 @@
 
 #include "filter_wrapper.h"
 #include "utils/config.h"
-#include "get_table2.h"
+#include "get_table.h"
 #include "utils/conversions.h"
 
 using namespace Eigen;

@@ -120,5 +120,13 @@ target_link_libraries(find_color_points ${PCL_LIBRARIES}
 					cloudOps utils
 					boxFilter
 					${Boost_LIBRARIES})
+
+add_executable(find_color_associater src/color_point_associater.cpp)
+target_link_libraries(find_color_associater ${PCL_LIBRARIES}
+                                            ${ROS_LIBRARIES}  
+					    cloudOps utils
+					    boxFilter
+					    ${Boost_LIBRARIES})
+
 #############################################################
  

@@ -1,7 +1,7 @@
 #include "cloud_ops.h"
 #include "utils/utils_pcl.h"
 #include "plane_finding.h"
-#include "get_table2.h"
+#include "get_table.h"
 #include "geom.h"
 #include <boost/foreach.hpp>
 using namespace std;
