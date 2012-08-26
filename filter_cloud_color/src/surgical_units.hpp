@@ -4,6 +4,9 @@
 using namespace Eigen;
 using namespace std;
 
+/*
+  Structure which hold basic information about holes.
+*/
 struct Hole {
   typedef boost::shared_ptr<Hole> Ptr;
 
@@ -22,6 +25,9 @@ struct Hole {
     _x_ID(x_ID), _y_ID(y_ID) {};
 };
 
+/*
+  Structure which hold basic information about cuts.
+*/
 struct Cut {
   typedef boost::shared_ptr<Cut> Ptr;
 
@@ -50,6 +56,9 @@ struct Cut {
   { _xyzs.push_back(xyz); _x_IDs.push_back(x_ID); _y_IDs.push_back(y_ID); }
 };
 
+/*
+  Structure which hold basic information about the suture.
+*/
 struct Suture {
   typedef boost::shared_ptr<Suture> Ptr;
 

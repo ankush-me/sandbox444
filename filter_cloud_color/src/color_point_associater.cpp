@@ -18,6 +18,7 @@
 
 #include "surgical_units.hpp"
 #include "make_unit.hpp"
+#include "extract_inds.hpp"
 
 using namespace Eigen;
 
