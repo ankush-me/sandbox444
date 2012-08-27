@@ -36,5 +36,3 @@ vector<int> extractInds (int n) {
 
   return inds;
 }
-   
-    

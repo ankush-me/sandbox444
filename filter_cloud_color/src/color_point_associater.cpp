@@ -2,6 +2,8 @@
    Figure out how to move information between nodes.
    Finish make_unit.hpp to return a proper unit.
    Maybe take into account where holes/cuts were last iteration.
+     (Basically use more info than just color)
+   Maybe extract the sponge by cascading orientedBoxFilters.
 */
 
 #include <ros/topic.h>
@@ -44,6 +46,9 @@ struct LocalConfig : Config {
   static int maxV;
   static int minV;
   static bool useHF;
+  static int holes;
+  static int cuts;
+  static int suture;
   static int debugging;
 
   LocalConfig() : Config() {
@@ -76,6 +81,12 @@ struct LocalConfig : Config {
     params.push_back(new Parameter<int>("maxV", &maxV, "Maximum value"));
     params.push_back(new Parameter<int>("minV", &minV, "Minimum value"));
     params.push_back(new Parameter<bool>("useHF", &useHF, "Use hue filter"));
+    params.push_back(new Parameter<int>
+		     ("holes", &holes, "Indices for displayed holes(0 - all)"));
+    params.push_back(new Parameter<int>
+		     ("cuts", &cuts, "Indices for displayed cuts(0 - all)"));
+    params.push_back(new Parameter<int>
+		     ("suture", &suture, "Flag to display suture"));
     params.push_back(new Parameter<int>
 		     ("debugging", &debugging, "Debug flag: 1/0 - Yes/No"));
   }
@@ -112,6 +123,9 @@ int LocalConfig::minS = 0;
 int LocalConfig::maxV = 255;
 int LocalConfig::minV = 0;
 bool LocalConfig::useHF = false;
+int LocalConfig::holes = 0;
+int LocalConfig::cuts = 0;
+int LocalConfig::suture = 1;
 int LocalConfig::debugging = 0;
   
 /* 
@@ -125,7 +139,7 @@ bool pending = false;
 */
 vector<Hole::Ptr> holes;
 vector<Cut::Ptr> cuts;
-Suture::Ptr suture;
+Suture::Ptr suture (new Suture());
 
 //Scale for stddev of hue to find points of similar color
 int HUE_STD_SCALE = 2;
@@ -199,6 +213,41 @@ ColorCloudPtr showSuture (ColorCloudPtr in) {
   ColorCloudPtr out (new ColorCloud());
   
   suture_HF.filter(in, out);
+  
+  return out;
+}
+
+/*
+  Function that returns with pointCloud cuts/holes/suture as specified.
+  Takes pointCloud.
+*/
+ColorCloudPtr extractSurgicalUnits (ColorCloudPtr in,
+				    vector<int> *holeInds,
+				    vector<int> *cutInds,
+				    int sutureFlag) {
+  
+  ColorCloudPtr out (new ColorCloud());
+  
+  if (holeInds->at(0) == 0) {
+    for (int i = 0; i < holes.size(); i++)
+      *out = *out + *showHole(in, i+1);
+  } else {
+    for (int i = 0; i < holeInds->size(); i++)
+      if (holeInds->at(i) < holes.size())
+	*out = *out + *showHole(in, holeInds->at(i));
+  }
+
+  if (cutInds->at(0) == 0) {
+    for (int i = 0; i < cuts.size(); i++)
+      *out = *out + *showCut(in, i+1);
+  } else {
+    for (int i = 0; i < cutInds->size(); i++)
+      if (cutInds->at(i) < holes.size())
+	*out = *out + *showCut(in, cutInds->at(i));
+  }
+
+  if (sutureFlag)
+    *out = *out + *showSuture(in);
   
   return out;
 }
@@ -292,6 +341,7 @@ void createFilter (filter_cascader &cascader) {
   cascader.appendFilter(oBoxFilter);
 
   //Hue Filter
+  //Maybe add another orientedBoxFilter for the .
   if (LocalConfig::useHF) {
     boost::shared_ptr<hueFilter_wrapper> 
       hue_filter (new hueFilter_wrapper());
@@ -326,6 +376,26 @@ void makeIntoOne (std::vector< std::vector <vectype> > *in,
   }
 }
 
+/*
+  Hardcoded test for cuts, holes and suture.
+*/
+void testHolesCuts () {
+  Cut::Ptr cut1 (new Cut());
+  cut1->_H = 176; cut1->_S = 213; cut1->_V = 185;
+  cut1->_Hstd = 4; cut1->_Sstd = 89; cut1->_Vstd = 24;
+
+  Cut::Ptr cut2 (new Cut());
+  cut2->_H = 113; cut2->_S = 150; cut2->_V = 176;
+  cut2->_Hstd = 4; cut2->_Sstd = 40; cut2->_Vstd = 13;
+
+  cuts.push_back(cut1);
+  cuts.push_back(cut2);
+
+  suture->_H = 105; suture->_S = 150; suture->_V = 150;
+  suture->_Hstd = 5; suture->_Sstd = 50; suture->_Vstd = 50; 
+}
+
+
 
 int main (int argc, char* argv[]) {
   Parser parser;
@@ -342,6 +412,14 @@ int main (int argc, char* argv[]) {
   //  nh.advertise<sensor_msgs::PointCloud2>
   //  (LocalConfig::camNS + "depth_registered/filtered_points", 5);
 
+
+  //Test:
+  testHolesCuts();
+  //
+
+  vector<int> holeInds = extractInds (LocalConfig::holes);
+  vector<int> cutInds = extractInds (LocalConfig::cuts);
+
   while (!pending) {
     ros::spinOnce();
     sleep(.001);
@@ -352,22 +430,35 @@ int main (int argc, char* argv[]) {
 
   filter_cascader cascader;
   createFilter(cascader);
-
   pcl::visualization::CloudViewer viewer ("Visualizer");
+  
   
   while (ros::ok()) {
     ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
 
     cascader.filter(cloud_pcl, cloud_pcl_filtered);
-      
-    std::vector < std::vector <int> > 
-      colorClusters = findClusters (cloud_pcl_filtered);
+    
+    ColorCloudPtr surgicalUnits_cloud (new ColorCloud);
+
+    surgicalUnits_cloud = extractSurgicalUnits (cloud_pcl_filtered,
+						&holeInds,
+						&cutInds,
+						LocalConfig::suture);
+
+
+    if (LocalConfig::debugging) {
+      viewer.showCloud (cloud_pcl_filtered);
+    } else {
+      viewer.showCloud (surgicalUnits_cloud);
+    }
+    //std::vector < std::vector <int> > 
+    //colorClusters = findClusters (cloud_pcl_filtered);
     //std::vector < int > colorCluster;
     //makeIntoOne (&colorClusters, &colorCluster);
     //ColorCloudPtr pc2 (new ColorCloud (*cloud_pcl_filtered, colorCluster));
     //std::vector < std::vector <ColorPoint> > 
 
-    viewer.showCloud(cloud_pcl_filtered);
+    //viewer.showCloud(cloud_pcl_filtered);
     //viewer.showCloud(pc2);
 
     //sensor_msgs::PointCloud2 cloud_ros_filtered;

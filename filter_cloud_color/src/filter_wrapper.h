@@ -223,7 +223,6 @@ class hueFilter_wrapper : public filter_wrapper<ColorPoint> {
   }
 };
 
-
 /** Filters out a point iff, point.z \notin [LOW,HIGH].
     LOW and HIGH are generally in meters. */
 class filterZ_wrapper : public filter_wrapper<ColorPoint> {
