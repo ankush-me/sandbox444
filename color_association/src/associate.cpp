@@ -26,6 +26,8 @@ typedef boost::shared_ptr<pcl::Normal> NormalPtr;
 typedef pcl::IntegralImageNormalEstimation<pcl::PointXYZRGB, pcl::Normal> NormalEstimation;
 typedef boost::shared_ptr<NormalEstimation> NormalEstimationPtr;
 
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_pcl;
+
 /** Structure to store HSV values. */
 struct HSV {
   uint8_t h,s,v;
@@ -404,7 +406,7 @@ get_cuts_normal(const std::vector<surgical_msgs::Cut> cuts,
     2. Finds the local surface normal directions at the holes and the cuts. */
 void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
   ROS_INFO("Initinfo recieved.");
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_pcl (new pcl::PointCloud<pcl::PointXYZRGB>);
+  cloud_pcl = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::fromROSMsg(info->cloud, *cloud_pcl);
 
   // Initialize organized neighbor structure for nearest neighbor search
@@ -424,6 +426,17 @@ void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
 
   std::vector<surgical_msgs::Cut> cuts = info->cuts;
   std::vector<HSVInfo::Ptr> cut_hsv_info = get_cut_HSV(org_search, cuts);
+
+  for(int i=0; i < cut_hsv_info.size(); i+=1) {
+    std::stringstream ss;
+    ss<<"HSV : ("<<(int)cut_hsv_info[i]->h<<","
+      <<(int)cut_hsv_info[i]->s<<","
+      <<(int)cut_hsv_info[i]->v<<") | std: ("
+      <<(int)cut_hsv_info[i]->h_std<<","
+      <<(int)cut_hsv_info[i]->s_std<<","
+      <<(int)cut_hsv_info[i]->v_std<<")\n";
+    ROS_INFO(ss.str().c_str());
+  }
 }
 
 
