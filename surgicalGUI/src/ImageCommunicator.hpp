@@ -8,7 +8,6 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
-//#include <sensor_msgs/image_encodings.h>
 
 #include <cv.h>
 #include <list>
@@ -66,9 +65,7 @@ private:
     if (!_is_fixed) {
       _cloud_ptr.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
       pcl::fromROSMsg(*cloud_ros, *_cloud_ptr);
-
-      //_main_frame = toCVMatImage(_cloud_ptr);
-   
+ 
       // get image from the point-cloud
       cv_bridge::CvImagePtr cv_ptr;
       try {
@@ -76,11 +73,11 @@ private:
 	try {
 	  cv_ptr = cv_bridge::toCvCopy(_sensor_image);
 	} catch (cv_bridge::Exception& ex1) {
-	  ROS_ERROR("cv_bridge exception: %s", ex1.what());
+	  ROS_ERROR("Surgic@lGUI.ImageCommunicator:cv_bridge exception: %s", ex1.what());
 	  return;
 	}
       } catch (std::runtime_error ex2) {
-	ROS_ERROR("Error in converting cloud to image message: %s", ex2.what());
+	ROS_ERROR("Surgic@lGUI.ImageCommunicator:Error in converting cloud to image message: %s", ex2.what());
 	return;
       }
 
@@ -146,7 +143,6 @@ public:
       (*cuts_iter)->paint(_working_frame);
 
     cv::imshow(_window_name, _working_frame);
-    cv::waitKey(10);
   }
 
 };
