@@ -6,6 +6,9 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/Image.h>
+#include <cv_bridge/cv_bridge.h>
+//#include <sensor_msgs/image_encodings.h>
 
 #include <cv.h>
 #include <list>
@@ -35,7 +38,10 @@ private:
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloud_ptr;
 
   /** The latest point-cloud recieved [ROS FORMAT]. */
-  sensor_msgs::PointCloud2::ConstPtr _cloud_ptr_ros;
+  sensor_msgs::PointCloud2::Ptr _cloud_ptr_ros;
+
+  /** Image used for point-cloud->opencv::mat conversion. */
+  sensor_msgs::Image _sensor_image;
 
   /** The main frame is updated, everytime when a new frame is received. */
   cv::Mat _main_frame;
@@ -58,10 +64,29 @@ private:
   /** Called when this recieves a new point-cloud. */
   void cloudCB(const sensor_msgs::PointCloud2::ConstPtr cloud_ros) {
     if (!_is_fixed) {
-      _cloud_ptr_ros = cloud_ros;
+      _cloud_ptr.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
       pcl::fromROSMsg(*cloud_ros, *_cloud_ptr);
-      _main_frame = toCVMatImage(_cloud_ptr);
-      cv::imshow(_window_name, _main_frame);
+
+      //_main_frame = toCVMatImage(_cloud_ptr);
+   
+      // get image from the point-cloud
+      cv_bridge::CvImagePtr cv_ptr;
+      try {
+	pcl::toROSMsg (*cloud_ros, _sensor_image);
+	try {
+	  cv_ptr = cv_bridge::toCvCopy(_sensor_image);
+	} catch (cv_bridge::Exception& ex1) {
+	  ROS_ERROR("cv_bridge exception: %s", ex1.what());
+	  return;
+	}
+      } catch (std::runtime_error ex2) {
+	ROS_ERROR("Error in converting cloud to image message: %s", ex2.what());
+	return;
+      }
+
+      _main_frame    = cv_ptr->image.clone(); 
+      _working_frame = _main_frame.clone();
+      cv::imshow(_window_name, _working_frame);
     }
   }
 
@@ -72,6 +97,7 @@ public:
 							  _nh_ptr(nh_ptr),
 							  _cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(480,640)),
 							  _cloud_ptr_ros(new sensor_msgs::PointCloud2),
+							  _sensor_image(),
 							  _main_frame(cv::Mat::zeros(480,
 										     640,
 										     CV_32FC3)),
@@ -98,16 +124,19 @@ public:
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr get_cloud_ptr() {return _cloud_ptr;}
 
   /** Return the pointer to the last point-cloud recieved [ROS FORMAT]. */
-  sensor_msgs::PointCloud2::ConstPtr get_cloud_ptr_ros() {return _cloud_ptr_ros;}
+  sensor_msgs::PointCloud2::Ptr get_cloud_ptr_ros() {
+    _cloud_ptr_ros.reset(new sensor_msgs::PointCloud2);
+    pcl::toROSMsg(*_cloud_ptr, *_cloud_ptr_ros);  
+    return _cloud_ptr_ros;
+  }
 
   /** Arrests the last frame as the permanent one. */
   void fix_frame() { _is_fixed = true; }
 
-
   /** Refreshes the display and paints the HOLES and CUTS. */
   void repaint(std::list<Hole::Ptr> &holes, std::list<Cut::Ptr> &cuts) {
-    _main_frame.copyTo(_working_frame);
-    
+    _working_frame = _main_frame.clone();
+
     std::list<Hole::Ptr>::iterator holes_iter;
     for (holes_iter = holes.begin(); holes_iter != holes.end(); holes_iter++)
       (*holes_iter)->paint(_working_frame);
@@ -117,6 +146,7 @@ public:
       (*cuts_iter)->paint(_working_frame);
 
     cv::imshow(_window_name, _working_frame);
+    cv::waitKey(10);
   }
 
 };
