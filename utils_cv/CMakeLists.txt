@@ -9,6 +9,5 @@ find_package(OpenCV REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS}
                     ${CMAKE_SOURCE_DIR}/include)
-message(STATUS ": ssdsdsd" "${OpenCV_INCLUDE_DIRS}")
 
 add_subdirectory(src)
