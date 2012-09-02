@@ -1,4 +1,4 @@
-#include "hueFilter.hpp"
+#include "utils_cv/hueFilter.hpp"
 #include <vector>
 
 /** Simple class to filter an openCV mat in HUE SPACE. */
