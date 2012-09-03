@@ -4,12 +4,25 @@
 #include <ros/ros.h>
 #include <utils_cv/hueFilter.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
 #include <vector>
 
 cv::RNG rng(12345);
+
+
+void dilation(cv::Mat &src, cv::Mat &dst ) {
+  int dilation_type = cv::MORPH_ELLIPSE;
+  int dilation_size = 1;
+  cv::Mat element = cv::getStructuringElement( dilation_type,
+					       cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
+					       cv::Point( dilation_size, dilation_size ) );
+  cv::dilate( src, dst, element );
+}
+
 
 void imageCB(const sensor_msgs::Image::ConstPtr img) {
   cv_bridge::CvImagePtr cv_ptr;
@@ -20,13 +33,14 @@ void imageCB(const sensor_msgs::Image::ConstPtr img) {
     return;
   }
 
+
+  // set the image region of interest
   cv::Mat in_img1  = cv_ptr->image.clone();
   cv::Rect roi(60,50,400,350);
   cv::Mat in_img(in_img1, roi);
-  cv::imshow("orig", in_img);
-  cv::waitKey(5);
-  
+ 
 
+  // do a circular hough transform
   cv::Mat img1,gray;
   in_img.copyTo(img1);
   int thresh1 = 100;
@@ -49,30 +63,33 @@ void imageCB(const sensor_msgs::Image::ConstPtr img) {
   cv::imshow( "circles", img1 );
 
 
-
+  // change brightness/ contrast
   //cv::Mat cvt_img;
   ///in_img.convertTo(cvt_img, -1, 1.01, 0);
   //cv::imshow("cvt", cvt_img);
   //cv::waitKey(5);
 
+  // hue filter the image
   hueFilter hFilter(80,85);
   cv::Mat dest;
   hFilter.filter(in_img, dest, true);
-  cv::imshow("hue", dest);
-  cv::waitKey(5);
+
+  cv::Mat dest1;
+  dilation(dest, dest1);
 
 
+  // do canny edge detection
   cv::Mat gray_img, canny_img;
   int thresh = 100;
   //cv::cvtColor(dest, gray_img,CV_RGB2GRAY);
-  cv::Canny(dest, canny_img, thresh, thresh*2, 3 );
+  cv::Canny(dest1, canny_img, thresh, thresh*2, 3 );
   cv::imshow("canny", canny_img);
   cv::waitKey(5);
 
   std::vector<std::vector<cv::Point> > contours;
   std::vector<cv::Vec4i> hierarchy;
   cv::findContours( canny_img, contours, hierarchy,
-		CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
+		    CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 
   /// Draw contours
   cv::Mat drawing = cv::Mat::zeros( canny_img.size(), CV_8UC3 ); 
@@ -98,9 +115,6 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "hue_filter_node");
   ros::NodeHandle nh;
   ros::Subscriber sub;
-
-  cv::namedWindow("in");
-  cv::waitKey(100);
 
   std::string img_topic = "/wide_stereo/left/image_rect_color";
   sub = nh.subscribe(img_topic, 1, imageCB);
