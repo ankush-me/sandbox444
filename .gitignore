@@ -4,3 +4,5 @@ build/*
 .metadata/*
 */build/*
 *test/*
+
+filter_color_cloud2/*

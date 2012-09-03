@@ -1,0 +1,2 @@
+/usr/bin/ar cr ../lib/libutils.a  CMakeFiles/utils.dir/utils_vector.o CMakeFiles/utils.dir/utils_pcl.o CMakeFiles/utils.dir/config.o CMakeFiles/utils.dir/logging.o CMakeFiles/utils.dir/conversions.o
+/usr/bin/ranlib ../lib/libutils.a

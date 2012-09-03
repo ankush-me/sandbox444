@@ -8,7 +8,9 @@
 #include "utils/utils_vector.h"
 
 #include <opencv2/core/core.hpp>
-#include <cv.h>
+#include <opencv2/calib3d/calib3d.hpp>
+
+//#include <opencv2/cv.h>
 
 std::vector< std::vector<int> > findClusters(ColorCloudPtr cloud, float tol=.02, int minSize=100);
 

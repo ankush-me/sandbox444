@@ -1,0 +1,2 @@
+/usr/bin/ar cr ../lib/libboxFilter.a  CMakeFiles/boxFilter.dir/geom.o CMakeFiles/boxFilter.dir/plane_finding.o CMakeFiles/boxFilter.dir/get_table.o
+/usr/bin/ranlib ../lib/libboxFilter.a

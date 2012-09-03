@@ -1,11 +1,8 @@
-# Author: Ankush Gupta
-# Date  : 15th July, 2012
-
 cmake_minimum_required(VERSION 2.6)
-project(Filter)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules")
+include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 set(FILTER_COLOR_CLOUD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${FILTER_COLOR_CLOUD_DIR}/CMakeModules")
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #-------------------------- Generally useful function ------------------
 function(echo_all_variables)
@@ -49,84 +46,66 @@ endmacro()
 #------------------------------------------------------------------------
 
 
-# Set the paths for TF (ROS PACKAGE) and BULLET (required by tf)
-# ^ Unfortunately hardcoded.
-set(TF_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/geometry/tf")
-set(TF_INCLUDE_DIRS "${TF_PATH}/include")
-set(TF_LIBRARY_DIRS "${TF_PATH}/lib")
+rosbuild_init()
 
-# Bullet stuff
-set(BULLET_DIR ${FILTER_COLOR_CLOUD_DIR}/lib/bullet-2.79)
+set(BULLET_DIR ${FILTER_COLOR_CLOUD_DIR}/../lib/bullet-2.79)
 set(BULLET_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/bullet")
 set(BULLET_INCLUDE_DIRS "${BULLET_PATH}/include")
 set(BULLET_LIBS BulletDynamics BulletCollision LinearMath)
-#set(BULLET_LIBRARY_DIRS "${BULLET_PATH}/lib")
 
-# Set paths for CV_BRIDGE
-set(CV_BRIDGE_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/vision_opencv/cv_bridge")
-set(CV_BRIDGE_INCLUDE_DIRS "${CV_BRIDGE_PATH}/include")
-set(CV_BRIDGE_LIBRARY_DIRS "${CV_BRIDGE_PATH}/lib")
+set(LOG4CPLUS_DIR ${FILTER_COLOR_CLOUD_DIR}/../lib/log4cplus-1.1.0-rc3)
+set(LOG4CPLUS_INCLUDE_DIRS ${LOG4CPLUS_DIR}/include ${CMAKE_BINARY_DIR}/include)
+set(LOG4CPLUS_LIBRARY "log4cplus")
 
 # Set path for OpenCV: This is compiling with ROS's openCV. More of a hack.
 set(OpenCV_DIR "/opt/ros/$ENV{ROS_DISTRO}/share/OpenCV")
 find_package(OpenCV REQUIRED)
 
-# Set path for LOG4CPLUS
-set(LOG4CPLUS_DIR ${FILTER_COLOR_CLOUD_DIR}/lib/log4cplus-1.1.0-rc3)
-set(LOG4CPLUS_INCLUDE_DIRS ${LOG4CPLUS_DIR}/include ${CMAKE_BINARY_DIR}/include)
-set(LOG4CPLUS_LIBRARY "log4cplus")
+#echo_all_variables()
 
 # EXTERNAL LIBRARIES
 find_package(Boost COMPONENTS program_options  REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
- # find the ros stuff: this sets $ROS_INCLUDE_DIRS and $ROS_LIBRARIES
- # see '/opt/ros/fuerte/share/ros/cmake/ros-config.cmake' for details.
-find_package(ROS
-  COMPONENTS roscpp roscpp_serialization rostime rosbag
-  REQUIRED)
-
 
 include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
-                    ${ROS_INCLUDE_DIRS}
-                    ${TF_INCLUDE_DIRS} ${BULLET_INCLUDE_DIRS}
-		    ${BULLET_DIR}/src
+                    ${BULLET_INCLUDE_DIRS} ${BULLET_DIR}/src
+		    ${FILTER_COLOR_CLOUD_DIR}
 		    ${FILTER_COLOR_CLOUD_DIR}/src
-		    ${CV_BRIDGE_INCLUDE_DIRS}
-		    ${EIGEN3_INCLUDE_DIRS})
-link_directories(${PCL_LIBRARY_DIRS} ${TF_LIBRARY_DIRS}
-                 ${CMAKE_SOURCE_DIR}/src
-		 ${CV_BRIDGE_LIBRARY_DIRS})
+		    ${EIGEN3_INCLUDE_DIRS}
+)
 
-add_definitions(${PCL_DEFINITIONS})
-add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
+link_directories(${PCL_LIBRARY_DIRS}
+                 ${FILTER_COLOR_CLOUD_DIR}/src
+                 ${FILTER_COLOR_CLOUD_DIR}/utils
+)
 
+add_subdirectory(${FILTER_COLOR_CLOUD_DIR}/utils)
+add_subdirectory(${FILTER_COLOR_CLOUD_DIR}/src)
+add_subdirectory(${FILTER_COLOR_CLOUD_DIR}/../lib ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
-#  Get the TF dynamic link library path
-set(tf_libs "libtf.so")
-find_libraries(tf_libs TF_LIBRARY_DIRS TF_LIBRARIES)
+#set the default path for built executables to the "bin" directory
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+#set the default path for built libraries to the "lib" directory
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/../lib)
 
-add_subdirectory(src)
-add_subdirectory(lib)
+#uncomment if you have defined messages
+#rosbuild_genmsg()
+#uncomment if you have defined services
+#rosbuild_gensrv()
 
-add_executable(test test.cpp)
+#common commands for building c++ executables and libraries
+#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
+#target_link_libraries(${PROJECT_NAME} another_library)
+#rosbuild_add_boost_directories()
+#rosbuild_link_boost(${PROJECT_NAME} thread)
+rosbuild_add_executable(test src/test.cpp)
 target_link_libraries(test ${PCL_LIBRARIES}
                            ${OpenCV_LIBS} cv_bridge
 			   FilterWriter cloudOps utils)
 
-add_executable(find_color_points src/color_point_finder.cpp)
+rosbuild_add_executable(find_color_points src/color_point_finder.cpp)
 target_link_libraries(find_color_points ${PCL_LIBRARIES}
-                                        ${ROS_LIBRARIES}  
 					cloudOps utils
 					boxFilter
 					${Boost_LIBRARIES})
-
-add_executable(color_associater src/color_point_associater.cpp)
-target_link_libraries(color_associater ${PCL_LIBRARIES}
-                                            ${ROS_LIBRARIES}  
-					    cloudOps utils
-					    boxFilter
-					    ${Boost_LIBRARIES})
-
-#############################################################
- 
