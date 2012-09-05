@@ -8,6 +8,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 #include <utils_cv/ImageAND.hpp>
 #include <utils_cv/CannyBlur.hpp>
@@ -16,15 +17,9 @@
 using namespace cv;
 
 
-std::string window_name;
 ImageProcessor::Ptr cannyblur(new CannyBlur);
 ImageAND ander(cannyblur,3);
 
-
-void create_display_windows(std::string window_name="window") {
-  namedWindow(window_name);
-  waitKey(10);
-}
 
 
 void imageCB(const sensor_msgs::Image::ConstPtr img) {
@@ -35,27 +30,41 @@ void imageCB(const sensor_msgs::Image::ConstPtr img) {
     ROS_ERROR("cv_bridge exception: %s", ex1.what());
     return;
   }
-
-  ander.update(cv_ptr->image.clone());
+  cv::Mat cv_img = cv_ptr->image.clone();
+  ander.update(cv_img);
 
   if (ander.is_ready()) {
-    imshow(window_name, ander.get());
-    waitKey(10);
+    cv::Mat and_img = ander.get();
+
+    cv::Mat debug_mat;
+    cv::GaussianBlur(and_img, debug_mat, cv::Size(9,9), 2, 2);
+    std::vector<cv::Vec3f> circles;
+    cv::HoughCircles(debug_mat, circles, CV_HOUGH_GRADIENT,
+		     2, debug_mat.rows/3, 200, 100,50,75);
+
+    for( size_t i = 0; i < circles.size(); i++ ) {
+      cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+      int radius = cvRound(circles[i][2]);
+      // Draw the circle center
+      cv::circle(cv_img, center, 3, cv::Scalar(0,255,0), -1, 8, 0);
+      // Draw the circle outline
+      cv::circle(cv_img, center, radius, cv::Scalar(0,0,255), 7, 8, 0);
+    }
+    cv::imshow("Hough Circles: ANDed", cv_img);
+    cv::waitKey(5);
   }
 }
 
 
 int main(int argc, char** argv) {
 
-  ros::init(argc, argv, "and_images");
-  ros::NodeHandle nh("and_images_node");
-
-  window_name = "ANDed";
-  create_display_windows(window_name);
+  ros::init(argc, argv, "and_image_node");
+  ros::NodeHandle nh("and_image_node");
 
   std::string topic; 
   nh.param<std::string>("topic", topic, "/camera/rgb/image_rect");
   ros::Subscriber sub = nh.subscribe(topic, 1, imageCB);
+  std::cout<<"Topic : "<<topic<<std::endl;
 
   ros::spin();
   return 0;
