@@ -5,8 +5,6 @@
 hueFilter::hueFilter(uint8_t h_min, uint8_t h_max) {
   _h_min = h_min;
   _h_max = h_max;
-  cv::namedWindow("filter_debug");
-  cv::waitKey(20);
 }
 
 void hueFilter::set_max(uint8_t max) {_h_max = max;}
@@ -37,9 +35,6 @@ void hueFilter::filter(cv::Mat &src, cv::Mat &dest, bool isMask) {
  
   cv::Mat mask(hue_channel.size(), hue_channel.type());
   cv::inRange(hue_channel, _h_min, _h_max, mask);
-  //cv::Mat ones_mat = cv::Mat::ones(mask.size(), mask.type());
-  //mask = ones_mat - mask;
-  cv::imshow("filter_debug",mask);
 
   if (isMask)
     mask.copyTo(dest);

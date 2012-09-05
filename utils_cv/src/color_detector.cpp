@@ -98,8 +98,7 @@ int main(int argc, char** argv) {
   create_display_windows(window_name);
   cvSetMouseCallback(window_name.c_str(), mouseHandler, (void*)&callback_data);
 
-  std::string topic;
-  
+  std::string topic; 
   nh.param<std::string>("topic", topic, "/wide_stereo/left/image_rect_color");
   ros::Subscriber sub = nh.subscribe(topic, 1, imageCB);
 

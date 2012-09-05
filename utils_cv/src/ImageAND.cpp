@@ -1,56 +1,45 @@
 /** Author: Ankush Gupta
     Date  : 4th Sept, 2012. */
 
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <utils_cv/ImageAND.hpp>
 
 
-/** Class maintains an ANDed image for all the images
-    it recieves in the call to UPDATE. */
+/** The image processor you want to apply to every incoming image. */
+ImageAND::ImageAND(ImageProcessor::Ptr processor, int n) : _img_proc(processor),
+							   _N(n), _and_img(),
+							   _is_publishing(false),
+							   _and_images()  {}
 
-class ImageAND {
-  
-private:
+/** call this to update the ANDed image. */
+void ImageAND::update(cv::Mat &img) {
+  cv::Mat dst;
+  _img_proc->process(img, dst);
 
-  /** Keeps a count of the images recieved. */
-  unsigned int num_images;
+  if (_and_images.size() < _N)
+    _and_images.push_back(dst);
+  else {
+    _is_publishing = true;
 
-  /** The image processing function that should be applied
-      to every incoming image before being ANDed. */
-  ImageProcessor::Ptr _img_proc;
+    for(int i = 0; i < _and_images.size()-1; i += 1) {
+      _and_images[i] = _and_images[i+1];
+    }
+    _and_images[_N-1] = dst;
 
-  /** This is TRUE is this is ready to give an output image. */
-  bool _is_publishing;
-
-  /** The internal ANDed image. */
-  cv::Mat _and_img;
-
-public:
-
-  /** The image processor you want to apply to every incoming image. */
-  ImageAND(ImageProcessor::Ptr processor) : _img_proc(processor),
-					    _num_images(0),
-					    _is_publishing(false),
-					    _and_image()  {}
-
-
-  /** call this to update the ANDed image. */
-  void update(cv::Mat &img) {
-
-    if (_num_images == 0)
-      _and_img = cv::Mat::ones(img.size(), img.type());
-
-    cv::Mat dst;
-    cv::Mat src = img.clone();
-    _img_proc->process(src, dst);
-
-    AND THE IMAGES TOGETHER HERE.
-
+    _and_img = cv::Mat::zeros(_and_images[0].size(), _and_images.type());
+    for(int i =0; i < _N-1; i += 1) {
+      cv::bitwise_and(_and_images[i], _and_images[i+1], _and_img);
+    }
   }
-    
-  bool is_ready() {return _is_publishing;}
+}
 
-    
+/** Returns true iff, this.get_and() has a result. */
+bool ImageAND::is_ready() {return _is_publishing;}
+
+/** Returns the result of AND. */
+cv::Mat ImageAND::get() {
+  if (_is_publishing) {
+    return _and_img.clone();
+  } else {
+    throw("ImageAND : Not enough images!");
+  }
 }
