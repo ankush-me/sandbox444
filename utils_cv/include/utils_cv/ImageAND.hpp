@@ -1,15 +1,13 @@
 /** Author: Ankush Gupta
     Date  : 4th Sept, 2012. */
 
+#include <utils_cv/ImageProcessor.hpp>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
 
-class ImageProcessor {
-public:
-  typedef int Ptr;
-};
 
 /** Class maintains an ANDed image for all the images
     it recieves in the call to UPDATE. */

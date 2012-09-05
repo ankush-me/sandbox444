@@ -25,7 +25,6 @@ void ImageAND::update(cv::Mat &img) {
     }
     _and_images[_N-1] = dst;
 
-    _and_img = cv::Mat::zeros(_and_images[0].size(), _and_images.type());
     for(int i =0; i < _N-1; i += 1) {
       cv::bitwise_and(_and_images[i], _and_images[i+1], _and_img);
     }

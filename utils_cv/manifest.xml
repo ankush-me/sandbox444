@@ -16,7 +16,7 @@
   <depend package="cv_bridge"/>
 
   <export>
-    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lhueFilter" />
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib -lHueFilter -lImageAND" />
   </export>
 
 </package>

@@ -25,7 +25,9 @@ find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 #common commands for building c++ executables and libraries
-rosbuild_add_library(hueFilter src/hueFilter.cpp)
+rosbuild_add_library(HueFilter src/HueFilter.cpp)
+rosbuild_add_library(ImageAND src/ImageAND.cpp)
+
 #target_link_libraries(${PROJECT_NAME} another_library)
 rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
