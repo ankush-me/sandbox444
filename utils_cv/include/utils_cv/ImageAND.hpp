@@ -1,6 +1,10 @@
 /** Author: Ankush Gupta
     Date  : 4th Sept, 2012. */
 
+#ifndef _IMAGE_AND_H_
+#define _IMAGE_AND_H_
+
+
 #include <utils_cv/ImageProcessor.hpp>
 
 #include <opencv2/core/core.hpp>
@@ -47,3 +51,5 @@ public:
   cv::Mat get();
 
 };
+
+#endif

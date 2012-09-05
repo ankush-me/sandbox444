@@ -1,6 +1,9 @@
 /** Author: Ankush Gupta
     Date  : 31st August, 2012. */
 
+#ifndef _HUE_FILTER_CV_UTILS_H_
+#define _HUE_FILTER_CV_UTILS_H_
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -32,3 +35,5 @@ public:
         set _h_min > h_max ]                 */
   void filter(cv::Mat &src, cv::Mat &dest, bool mask=false);
 };
+
+#endif

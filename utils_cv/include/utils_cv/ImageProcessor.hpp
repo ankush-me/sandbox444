@@ -1,6 +1,9 @@
 /** Author: Ankush Gupta
     Date  : 4th Sept, 2012. */
 
+#ifndef _IMAGE_PROCESSOR_UTILS_CV_H_
+#define _IMAGE_PROCESSOR_UTILS_CV_H_
+
 #include <opencv2/core/core.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -14,5 +17,7 @@ public:
   typedef boost::shared_ptr<ImageProcessor> Ptr;
   
   /** The core interface to the external users. */
-  virtual void process(cv::Mat &src, cv::Mat &dst);
+  virtual void process(cv::Mat &src, cv::Mat &dst) =0;
 };
+
+#endif

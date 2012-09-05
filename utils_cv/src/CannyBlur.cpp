@@ -4,8 +4,8 @@
 #include <utils_cv/CannyBlur.hpp>
 
 /** Parameterless constructor. */
-CannyBlur::CannyBlur() : ImageProcessor(),
-			 _roi(), _use_roi(false), _is_debug(false) {}
+CannyBlur::CannyBlur(bool debug) : ImageProcessor(),
+			 _roi(), _use_roi(false), _is_debug(debug) {}
 
 /** ROI sets the region of interest.
     if DEBUG==true : shows the images. */ 
@@ -24,20 +24,23 @@ void CannyBlur::process(cv::Mat &src, cv::Mat &dst) {
     in_img = in_img0;
 
   // Do canny edge detection and blurring.
-  cv::Mat gray;
   int thresh = 100;
-  cv::Canny(in_img, gray, thresh, thresh*2, 3);
-  cv::GaussianBlur(gray, gray, cv::Size(9,9), 2, 2);
+  cv::Canny(in_img, dst, thresh, thresh*2, 3);
 
   if (_is_debug) {
-    cv::imshow( "blur", gray );
+    cv::imshow( "Canny", dst);
     cv::waitKey(5);
   }
 
+
+
   if (_is_debug) {
+    cv::Mat debug_mat;
+    cv::GaussianBlur(dst, debug_mat, cv::Size(9,9), 2, 2);
+
     std::vector<cv::Vec3f> circles;
-    cv::HoughCircles(gray, circles, CV_HOUGH_GRADIENT,
-		     2, gray.rows/3, 200, 100,50,75);
+    cv::HoughCircles(debug_mat, circles, CV_HOUGH_GRADIENT,
+		     2, debug_mat.rows/3, 200, 100,50,75);
 
     for( size_t i = 0; i < circles.size(); i++ ) {
       cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
@@ -48,7 +51,7 @@ void CannyBlur::process(cv::Mat &src, cv::Mat &dst) {
       cv::circle(in_img0, center, radius, cv::Scalar(0,0,255), 7, 8, 0);
     }
   
-    cv::imshow("circles", in_img0);
+    cv::imshow("Hough Circles", in_img0);
     cv::waitKey(5);
   }
 }

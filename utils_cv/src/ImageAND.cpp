@@ -37,7 +37,8 @@ bool ImageAND::is_ready() {return _is_publishing;}
 /** Returns the result of AND. */
 cv::Mat ImageAND::get() {
   if (_is_publishing) {
-    return _and_img.clone();
+    cv::Mat ret_img = _and_img.clone();
+    return ret_img;
   } else {
     throw("ImageAND : Not enough images!");
   }

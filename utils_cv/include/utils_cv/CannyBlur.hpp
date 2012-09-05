@@ -1,6 +1,9 @@
 /** Author: Ankush Gupta
     Date  : 4th Sept, 2012. */
 
+#ifndef _CANNY_BLUR_H_
+#define _CANNY_BLUR_H_
+
 #include <utils_cv/ImageProcessor.hpp>
 
 #include <opencv2/core/core.hpp>
@@ -13,7 +16,7 @@
 
 /** Does canny edge detection followed by gaussian blurring
     followed by thresholding all non-zero values to 255. */
-class CannyBlur : ImageProcessor {
+class CannyBlur : public ImageProcessor {
 private:
 
   /** TRUE if ROI is given in the constructor. */
@@ -28,7 +31,7 @@ private:
 public:
 
   /** Parameterless constructor. */
-  CannyBlur();
+  CannyBlur(bool debug=false);
 
   /** ROI sets the region of interest.
       if DEBUG==true : shows the images. */ 
@@ -37,3 +40,4 @@ public:
   void process(cv::Mat &src, cv::Mat &dst);
 };
 
+#endif
