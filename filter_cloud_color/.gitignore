@@ -2,3 +2,6 @@
 build/*
 *CMakeFiles*
 *CMakeCache*
+*cmake_install*
+*CPack*
+*3rdparty_bin*
