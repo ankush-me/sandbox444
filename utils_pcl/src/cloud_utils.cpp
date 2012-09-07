@@ -6,13 +6,14 @@ using namespace std;
     best fits the input CLOUD.
     Uses pcl's RANSAC segmentation.
 
-    The returned coefficeints are : A B C D : Ax + By + Cz = D. */
-vector<float> get_plane_coeffs(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
+    The returned coefficeints are : [A,B,C,D] : Ax + By + Cz = D. */
+template<typename pointT>
+vector<float> get_plane_coeffs(typename pcl::PointCloud<pointT>::Ptr cloud) {
 
   pcl::ModelCoefficients::Ptr coeffs (new pcl::ModelCoefficients ());
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
 
-  pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+  typename pcl::SACSegmentation<pointT> seg;
   seg.setOptimizeCoefficients(true);
   seg.setModelType(pcl::SACMODEL_PLANE);
   seg.setMethodType(pcl::SAC_RANSAC);

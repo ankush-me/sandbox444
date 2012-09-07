@@ -15,7 +15,8 @@
     Uses pcl's RANSAC segmentation.
 
     The returned coefficeints are : A B C D : Ax + By + Cz = D. */
-std::vector<float> get_plane_coeffs(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud);
+template<typename pointT>
+std::vector<float> get_plane_coeffs(typename pcl::PointCloud<pointT>::Ptr cloud);
 
 /** Projects the input points onto the plane defined by PLANE_COEFFS.
     PLANE_COEFFS is expected to contain 4 coefficients [A,B,C,D], which
