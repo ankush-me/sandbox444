@@ -28,19 +28,21 @@ vector<float> get_plane_coeffs(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
 /** Projects the input points onto the plane defined by PLANE_COEFFS.
     PLANE_COEFFS is expected to contain 4 coefficients [A,B,C,D], which
     define the plane Ax + By + Cz = D. */
-template<typename pointT> pcl::PointCloud<pointT>::Ptr
-project_points_plane(pcl::PointCloud<pointT>::Ptr src_cloud,
+template<typename pointT> typename pcl::PointCloud<pointT>::Ptr
+project_points_plane(typename pcl::PointCloud<pointT>::Ptr src_cloud,
 		     vector<float> plane_coeffs) {
   if (plane_coeffs.size() != 4)
     throw("utils_pcl/cloud_utils/project_points_plane: Invalid number of plane coefficients.");
 
-  pcl::PointCloud<pointT>::Ptr cloud_projected (new pcl::PointCloud<pointT>);
-  pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
+  typename pcl::PointCloud<pointT>::Ptr cloud_projected
+    (new typename pcl::PointCloud<pointT>);
+  typename pcl::ModelCoefficients::Ptr coefficients
+    (new pcl::ModelCoefficients ());
   coefficients->values.resize (4);
   for(int i = 0; i < 4; i += 1)
     coefficients->values[i] = plane_coeffs[i];
 
-  pcl::ProjectInliers<pointT> proj;
+  typename pcl::ProjectInliers<pointT> proj;
   proj.setModelType (pcl::SACMODEL_PLANE);
   proj.setInputCloud (src_cloud);
   proj.setModelCoefficients (coefficients);

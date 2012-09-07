@@ -1,0 +1,23 @@
+<package>
+  <description brief="utils_pcl">
+
+     utils_pcl
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/utils_pcl</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="sensor_msgs"/>
+  <depend package="pcl"/>
+
+  <export>
+    <cpp cflags="-I${prefix}/include"
+	 lflags="-L${prefix}/lib" />
+  </export>
+
+</package>
+
+
