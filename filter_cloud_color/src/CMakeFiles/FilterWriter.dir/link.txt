@@ -1,2 +1,0 @@
-/usr/bin/ar cr ../lib/libFilterWriter.a  CMakeFiles/FilterWriter.dir/filter_color.o
-/usr/bin/ranlib ../lib/libFilterWriter.a

@@ -1,1 +1,0 @@
-/usr/bin/c++     -Wno-deprecated -O2 -g     CMakeFiles/ColorSampler.dir/color_detector.o  -o ../../ColorSampler -rdynamic -L/opt/ros/fuerte/lib -L/opt/ros/fuerte/stacks/geometry/tf/lib -L/opt/ros/fuerte/stacks/bullet/lib -L/opt/ros/fuerte/stacks/vision_opencv/cv_bridge/lib -L/home/sibi/sandbox/sandbox444/filter_cloud_color/src 

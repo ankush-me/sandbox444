@@ -1,2 +1,0 @@
-/usr/bin/ar cr ../lib/libcloudOps.a  CMakeFiles/cloudOps.dir/cloud_ops.o
-/usr/bin/ranlib ../lib/libcloudOps.a
