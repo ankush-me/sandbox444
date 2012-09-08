@@ -214,6 +214,41 @@ Eigen::Vector3f circle3d::snap_to_circle(Eigen::Vector3f pt) {
 }
 
 
+/** Displays:
+    1. The input points.
+    2. The best fitting 3D circle.
+    3. The given coordinate frame and the coordinate frame at 0,0,0
+    4. The best fitting plane. */
+void circle3d::visualize(Eigen::MatrixXf &frame) {
+  boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer
+    (new pcl::visualization::PCLVisualizer ("Visualizer"));
+  viewer->setBackgroundColor (0, 0, 0);
+  viewer->addPointCloud<pcl::PointXYZRGB> (_cloud, "input cloud");
+  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "input cloud");
+  viewer->addCoordinateSystem (1.0);
+  viewer->initCameraParameters ();
+  
+  viewer->addSphere (_center, _radius, "sphere");
+
+  pcl::ModelCoefficients coeffs;
+  coeffs.values.push_back (_a);
+  coeffs.values.push_back (_b);
+  coeffs.values.push_back (_c);
+  coeffs.values.push_back (_d);
+  viewer->addPlane (coeffs, "plane");
+
+  Eigen::Affine3f t;
+  t.linear() = frame.transpose().block(0,0,3,3);
+  t.translation() = frame.block(0,3,3,1);
+  viewer->addCoordinateSystem (1.0,t);
+
+  while (!viewer->wasStopped ()) {
+    viewer->spinOnce (100);
+    boost::this_thread::sleep (boost::posix_time::microseconds (100000));
+  }
+}
+
+
 /** Walks distance DIST on the circumference of the 3D circle,
     starting at the REFERENCE_PT, in the DIR direction.
     Returns the TRANSFORM of the destination point in the world frame.*/
