@@ -21,7 +21,6 @@ ImageProcessor::Ptr cannyblur(new CannyBlur);
 ImageAND ander(cannyblur,3);
 
 
-
 void imageCB(const sensor_msgs::Image::ConstPtr img) {
   cv_bridge::CvImagePtr cv_ptr;
   try {
@@ -42,15 +41,16 @@ void imageCB(const sensor_msgs::Image::ConstPtr img) {
     cv::HoughCircles(debug_mat, circles, CV_HOUGH_GRADIENT,
 		     2, debug_mat.rows/3, 200, 100,50,75);
 
+    cv::Mat circular_mask = cv::Mat::zeros(cv_img.size(), cv_img.type());
     for( size_t i = 0; i < circles.size(); i++ ) {
       cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
       int radius = cvRound(circles[i][2]);
       // Draw the circle center
-      cv::circle(cv_img, center, 3, cv::Scalar(0,255,0), -1, 8, 0);
+      cv::circle(circular_mask, center, 3, cv::Scalar(255,255,255), -1, 8, 0);
       // Draw the circle outline
-      cv::circle(cv_img, center, radius, cv::Scalar(0,0,255), 7, 8, 0);
+      cv::circle(circular_mask, center, radius, cv::Scalar(255,255,255), 7, 8, 0);
     }
-    cv::imshow("Hough Circles: ANDed", cv_img);
+    cv::imshow("Hough Circles: ANDed", circular_mask);
     cv::waitKey(5);
   }
 }
