@@ -272,18 +272,17 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
     throw;
   }
 
-  Eigen::Vector3f center_local    =  _rotation*(_center - _translation);
-  Eigen::Vector3f reference_local =  _rotation*(reference_pt - _translation);
-  Eigen::Vector3f center_to_ref   = reference_local - center_local;
+  //  Eigen::Vector3f center_local    =  _rotation*(_center - _translation);
+  //Eigen::Vector3f reference_local =  _rotation*(reference_pt - _translation);
+  Eigen::Vector3f center_to_ref   = _rotation.transpose()*(reference_pt - _center);
 
   float angle = (dir==CCW)? dist/_radius : -dist/_radius;
   Eigen::Rotation2Df rot(angle);
   Eigen::Vector2f target_circle_local = rot*Eigen::Vector2f(center_to_ref(0),
 							    center_to_ref(1));
-  Eigen::Vector3f target_local = ( Eigen::Vector3f(target_circle_local(0),
-						   target_circle_local(1),0) 
-				   + center_local);
-  Eigen::Vector3f target_world = (_rotation.transpose()*target_local)+_translation;
+  Eigen::Vector3f target_local = Eigen::Vector3f(target_circle_local(0),
+						 target_circle_local(1), 0);
+  Eigen::Vector3f target_world = _rotation*(target_local +_translation);
 
   //finding the tangent at Target : numerical difference.
   float theta = (dist+0.001)/_radius;
@@ -294,11 +293,11 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
 				     - target_circle_local );
   tangent_circle.normalize();
 
-  Eigen::Vector3f tangent_local = ( Eigen::Vector3f(tangent_circle(0),
-						    tangent_circle(1),
-						    0)
-				    + center_local);
-  Eigen::Vector3f world_tangent_x = (_rotation.transpose()*tangent_local);
+  Eigen::Vector3f tangent_local = Eigen::Vector3f(tangent_circle(0),
+						  tangent_circle(1),
+						  0);
+
+  Eigen::Vector3f world_tangent_x = _rotation*tangent_local;
   Eigen::Vector3f world_tangent_z = _normal;
   Eigen::Vector3f world_tangent_y = world_tangent_z.cross(world_tangent_x);
 
@@ -313,7 +312,7 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
 
   Eigen::MatrixXf homogenous_transform(4,4);
   homogenous_transform << world_to_target,
-                          world_to_target * target_world,
+                          reference_pt,
                           Eigen::RowVector4f(0,0,0,1);
 
   if(visualize)
