@@ -30,15 +30,15 @@ public:
 visualizer viz;
 
 
-void cloudCB(const surgical_msgs::InitInfo::ConstPtr& info) {
-  ROS_INFO("DisplayCloud: Data recieved.");
+void cloudCB(const sensor_msgs::PointCloud2::ConstPtr& cloud_data) {
+  //ROS_INFO("DisplayCloud: Data recieved.");
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_pcl (new pcl::PointCloud<pcl::PointXYZRGB>);
-  pcl::fromROSMsg(info->cloud, *cloud_pcl);
+  pcl::fromROSMsg(*cloud_data, *cloud_pcl);
   viz.display(cloud_pcl);
 }
 
 int main(int argc, char** argv) {
-  std::string cloud_topic = "/surgical_init";
+  std::string cloud_topic = "/camera/depth_registered/points";
   ros::init(argc, argv, "display_cloud");
   ros::NodeHandle nh;
 

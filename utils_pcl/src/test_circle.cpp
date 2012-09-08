@@ -29,7 +29,10 @@ int main(int argc, char** argv) {
   cloud->points[3].z = -2.0;
   cloud->points[6].z = 4.0;
 
-  compute_circle3d(cloud, false);
+  circle3d c3d(cloud);
+  c3d.compute_circle3d(true);
+
+  //compute_circle3d(cloud, false);
   ros::spin();
   return 0;
 }

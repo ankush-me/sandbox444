@@ -83,6 +83,7 @@ include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
                     ${TF_INCLUDE_DIRS} ${BULLET_INCLUDE_DIRS}
 		    ${CMAKE_SOURCE_DIR}/src
 		    ${CV_BRIDGE_INCLUDE_DIRS})
+
 link_directories(${PCL_LIBRARY_DIRS} ${TF_LIBRARY_DIRS}
                  ${CMAKE_SOURCE_DIR}/src
 		 ${CV_BRIDGE_LIBRARY_DIRS})
