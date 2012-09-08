@@ -96,51 +96,10 @@ void perp_basis(const Eigen::Vector3f& z,
 }
 
 
-/** Fits a 3d circle to the given input point CLOUD.
-void compute_circle3d(typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud,
-		      bool verbose) {
-
-  vector<float> plane = get_plane_coeffs(cloud);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr proj_points = project_points_plane(cloud, plane);
-
-  Eigen::Vector3f z_plane = Eigen::Vector3f(plane[0], plane[1], plane[2]);
-  z_plane.normalize();
-  Eigen::Vector3f y_plane, x_plane;
-  perp_basis(z_plane, x_plane, y_plane);
-  Eigen::Matrix3f rotation;
-  rotation.col(0) = x_plane;
-  rotation.col(1) = y_plane;
-  rotation.col(2) = z_plane;
-
-  Eigen::MatrixXf plane_pts_world = pcl_to_eigen(proj_points);
-  Eigen::Vector3f origin_plane    = plane_pts_world.row(0);
-
-  // Transform the given points in their plane's frame
-  // WORLD -> LOCAL PLANE
-    
-  Eigen::MatrixXf plane_pts(plane_pts_world);
-  plane_pts.rowwise() -= origin_plane;
-  plane_pts *= rotation.transpose();
-
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane_cloud  = eigen_to_pcl(plane_pts);
-  boost::shared_ptr<pcl::SampleConsensusModelCircle2D<pcl::PointXYZRGB> >
-    model(new pcl::SampleConsensusModelCircle2D<pcl::PointXYZRGB>(plane_cloud));
-
-  pcl::RandomSampleConsensus<pcl::PointXYZRGB> sac(model, .02);
-  bool result = sac.computeModel(2);
-  Eigen::VectorXf xyr;
-  sac.getModelCoefficients (xyr);
-
-  Eigen::Vector3f world_circle_center(xyr(0) + origin_plane(0),
-				      xyr(1) + origin_plane(1),
-				      0 + origin_plane(2));
-}
-*/
-
-
 /** Finds a 3D circle which fits ALL the points in in_cloud. */
 circle3d::circle3d(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in_cloud) : _cloud(in_cloud),
 								      _normal(),
+								      _a(0),_b(0),_c(0),_d(0),
 								      _rotation(3,3),
 								      _translation(),
 								      _center(),
@@ -153,8 +112,10 @@ circle3d::circle3d(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in_cloud) : _cloud(in_
 
     Returns the projections of the points on the plane found. */
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr circle3d::get_plane_basis(Eigen::Matrix3f &basis,
+								 Eigen::Vector4f &coeffs,
 								 bool verbose) {
   vector<float> plane = get_plane_coeffs(_cloud);
+  coeffs = Eigen::Vector4f(plane[0], plane[1], plane[2], plane[3]);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr proj_points = project_points_plane(_cloud, plane);
 
   Eigen::Vector3f z_plane = Eigen::Vector3f(plane[0], plane[1], plane[2]);
@@ -196,9 +157,14 @@ void circle3d::get_circle(pcl::PointCloud<pcl::PointXYZRGB>::Ptr points,
     Calculates a 3D circle which fits the threee given points.*/
 void circle3d::compute_circle3d(bool verbose) {
 
+  Eigen::Vector4f coeffs;
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr proj_points = 
-    get_plane_basis(_rotation, verbose);
+    get_plane_basis(_rotation, coeffs, verbose);
   _normal = _rotation.col(2);
+  _a = coeffs(0);
+  _b = coeffs(1);
+  _c = coeffs(2);
+  _d = coeffs(3);
 
   Eigen::MatrixXf plane_pts_world = pcl_to_eigen(proj_points);
   Eigen::Vector3f _translation    = plane_pts_world.row(0);
@@ -229,15 +195,39 @@ circle3d::orientation circle3d::get_orientation(Eigen::Vector3f &pt1,
   return _normal.dot((pt1 - _center).cross(pt2 - _center)) >= 0? CCW : CW;
 }
 
+/** Returns a point on this circle closest to the given PT. */
+Eigen::Vector3f circle3d::snap_to_circle(Eigen::Vector3f pt) {
+  float coeffs_arr[] = {_a,_b,_c,_d};
+  vector<float> coeffs(coeffs_arr, coeffs_arr + sizeof(coeffs_arr)/sizeof(float));
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
+  cloud->width  = 1;
+  cloud->height = 1;
+  cloud->points.resize (cloud->width * cloud->height);
+  cloud->points[0].x = pt(0);
+  cloud->points[0].y = pt(1);
+  cloud->points[0].z = pt(2);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr project = project_points_plane(cloud, coeffs);
+  Eigen::Vector3f project_pt(project->points[0].x,
+			     project->points[0].y,
+			     project->points[0].z);
+  return _center + _radius*((project_pt - _center).normalized());
+}
 
 
 /** Walks distance DIST on the circumference of the 3D circle,
     starting at the REFERENCE_PT, in the DIR direction.
     Returns the TRANSFORM of the destination point in the world frame.*/
-Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f reference_pt,
+Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
 					       double dist, orientation dir) {
-  if (((_center - reference_pt).norm() - _radius) > 0.005) {
+  Eigen::Vector3f reference_pt = snap_to_circle(pt);
+  std::cout<<"Input pt: "<<pt.transpose()
+	   <<"\n Pt being used: "<<reference_pt.transpose()<<std::endl;
+
+  float pdist= fabs((_center - reference_pt).norm() - _radius);
+  std::cout<<"\tPts distance from circle: "<<pdist<<std::endl;
+  if (pdist > 0.005) {
     std::cout<<"Error: extend_circumference: Reference point, not on the circle."
+	     <<"\n\t Distance : "<<pdist
 	     <<std::endl;
     throw;
   }
@@ -272,22 +262,22 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f reference_pt,
   Eigen::Vector3f world_tangent_z = _normal;
   Eigen::Vector3f world_tangent_y = world_tangent_z.cross(world_tangent_x);
 
-  world_tangent_x.normalize();
-  world_tangent_y.normalize();
-  world_tangent_z.normalize();
-
   Eigen::Matrix3f world_to_target(3,3);
   world_to_target << world_tangent_x.transpose(),
-    world_tangent_y.transpose(),
-    world_tangent_z.transpose();
+                     world_tangent_y.transpose(),
+                     world_tangent_z.transpose();
+
+  world_to_target.col(0).normalize();
+  world_to_target.col(1).normalize();
+  world_to_target.col(2).normalize();
 
   Eigen::MatrixXf homogenous_transform(4,4);
   homogenous_transform << world_to_target,
-    world_to_target * target_world,
-    Eigen::RowVector4f(0,0,0,1);
+                          world_to_target * target_world,
+                          Eigen::RowVector4f(0,0,0,1);
+
+  if(visualize)
+    visualize(homogenous_transform);
+
   return homogenous_transform;
-
 }
-
-
-
