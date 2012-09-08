@@ -228,6 +228,7 @@ void circle3d::visualize_data(Eigen::MatrixXf &frame) {
   viewer->addCoordinateSystem (1.0);
   viewer->initCameraParameters ();
   
+
   pcl::PointXYZ sphere_center;
   sphere_center.x = _center(0);
   sphere_center.y = _center(1);
@@ -274,7 +275,7 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
 
   //  Eigen::Vector3f center_local    =  _rotation*(_center - _translation);
   //Eigen::Vector3f reference_local =  _rotation*(reference_pt - _translation);
-  Eigen::Vector3f center_to_ref   = _rotation.transpose()*(reference_pt - _center);
+  Eigen::Vector3f center_to_ref   = _rotation.inverse()*(reference_pt - _center);
 
   float angle = (dir==CCW)? dist/_radius : -dist/_radius;
   Eigen::Rotation2Df rot(angle);
@@ -282,37 +283,35 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
 							    center_to_ref(1));
   Eigen::Vector3f target_local = Eigen::Vector3f(target_circle_local(0),
 						 target_circle_local(1), 0);
-  Eigen::Vector3f target_world = _rotation*(target_local +_translation);
 
   //finding the tangent at Target : numerical difference.
-  float theta = (dist+0.001)/_radius;
-  float diff_angle = (dir==CCW)? theta : -theta;
-  Eigen::Rotation2Df diff_rot(diff_angle);
-  Eigen::Vector2f tangent_circle = ( diff_rot*Eigen::Vector2f(center_to_ref(0),
-							      center_to_ref(1))
-				     - target_circle_local );
+  float theta = angle + 0.001;
+  Eigen::Rotation2Df diff_rot(theta);
+  Eigen::Vector2f target_local_diff = diff_rot*Eigen::Vector2f(center_to_ref(0),
+							       center_to_ref(1));
+  Eigen::Vector2f tangent_circle = target_local_diff -  target_circle_local;
   tangent_circle.normalize();
 
   Eigen::Vector3f tangent_local = Eigen::Vector3f(tangent_circle(0),
 						  tangent_circle(1),
 						  0);
 
-  Eigen::Vector3f world_tangent_x = _rotation*tangent_local;
+  Eigen::Vector3f world_tangent_x = tangent_local;
   Eigen::Vector3f world_tangent_z = _normal;
   Eigen::Vector3f world_tangent_y = world_tangent_z.cross(world_tangent_x);
 
-  Eigen::Matrix3f world_to_target(3,3);
-  world_to_target << world_tangent_x.transpose(),
-                     world_tangent_y.transpose(),
-                     world_tangent_z.transpose();
+  world_tangent_x.normalize();
+  world_tangent_y.normalize();
+  world_tangent_z.normalize();
 
-  world_to_target.col(0).normalize();
-  world_to_target.col(1).normalize();
-  world_to_target.col(2).normalize();
+  Eigen::Matrix3f world_to_target(3,3);
+  world_to_target << world_tangent_x,
+                     world_tangent_y,
+                     world_tangent_z;
 
   Eigen::MatrixXf homogenous_transform(4,4);
   homogenous_transform << world_to_target,
-                          reference_pt,
+                          _center+target_local,
                           Eigen::RowVector4f(0,0,0,1);
 
   if(visualize)

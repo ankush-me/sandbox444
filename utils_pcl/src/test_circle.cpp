@@ -7,6 +7,7 @@
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "test_circle");
+  ros::NodeHandle nh;
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);
 
@@ -30,15 +31,18 @@ int main(int argc, char** argv) {
   cloud->points[3].z = -2.0;
   cloud->points[6].z = 4.0;
 
-  int i = 10;
-  Eigen::Vector3f pt(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
-  std::cout<<"ref pt: \n"<<pt.transpose()<<std::endl;
-  
-  circle3d c3d(cloud);
-  c3d.compute_circle3d(true);
-  Eigen::MatrixXf frame = c3d.extend_circumference(pt,1.57079632679,circle3d::CCW,true);
-  std::cout<<"circum pt: \n"<<frame<<std::endl;
-
+  ros::Duration d(0.5);
+  for (int i = 0; i < 15; i +=1) {
+  //int i = 10;
+    Eigen::Vector3f pt(cloud->points[i].x, cloud->points[i].y, cloud->points[i].z);
+    std::cout<<"ref pt: \n"<<pt.transpose()<<std::endl;
+    
+    circle3d c3d(cloud);
+    c3d.compute_circle3d(true);
+    Eigen::MatrixXf frame = c3d.extend_circumference(pt,0,circle3d::CCW,true);
+    std::cout<<"circum pt: \n"<<frame<<std::endl;
+    d.sleep();
+  }
   ros::spin();
   return 0;
 }
