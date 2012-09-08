@@ -219,7 +219,7 @@ Eigen::Vector3f circle3d::snap_to_circle(Eigen::Vector3f pt) {
     2. The best fitting 3D circle.
     3. The given coordinate frame and the coordinate frame at 0,0,0
     4. The best fitting plane. */
-void circle3d::visualize(Eigen::MatrixXf &frame) {
+void circle3d::visualize_data(Eigen::MatrixXf &frame) {
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer
     (new pcl::visualization::PCLVisualizer ("Visualizer"));
   viewer->setBackgroundColor (0, 0, 0);
@@ -228,7 +228,11 @@ void circle3d::visualize(Eigen::MatrixXf &frame) {
   viewer->addCoordinateSystem (1.0);
   viewer->initCameraParameters ();
   
-  viewer->addSphere (_center, _radius, "sphere");
+  pcl::PointXYZ sphere_center;
+  sphere_center.x = _center(0);
+  sphere_center.y = _center(1);
+  sphere_center.z = _center(2);
+  viewer->addSphere (sphere_center, _radius, "sphere");
 
   pcl::ModelCoefficients coeffs;
   coeffs.values.push_back (_a);
@@ -253,7 +257,8 @@ void circle3d::visualize(Eigen::MatrixXf &frame) {
     starting at the REFERENCE_PT, in the DIR direction.
     Returns the TRANSFORM of the destination point in the world frame.*/
 Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
-					       double dist, orientation dir) {
+					       double dist, orientation dir,
+					       bool visualize) {
   Eigen::Vector3f reference_pt = snap_to_circle(pt);
   std::cout<<"Input pt: "<<pt.transpose()
 	   <<"\n Pt being used: "<<reference_pt.transpose()<<std::endl;
@@ -312,7 +317,7 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
                           Eigen::RowVector4f(0,0,0,1);
 
   if(visualize)
-    visualize(homogenous_transform);
+    visualize_data(homogenous_transform);
 
   return homogenous_transform;
 }

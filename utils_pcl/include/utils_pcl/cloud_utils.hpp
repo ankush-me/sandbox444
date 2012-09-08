@@ -2,6 +2,8 @@
 #define _UTILS_PCL_CLOUD_UTILS_H_
 
 #include <boost/foreach.hpp>
+#include <boost/thread/thread.hpp>
+
 #include <pcl/point_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -9,10 +11,14 @@
 #include <pcl/filters/project_inliers.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/ransac.h>
+#include <pcl/common/common_headers.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/console/parse.h>
 
 #include <Eigen/Dense>
-
-#include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 #include <vector>
 #include <iostream>
@@ -65,6 +71,11 @@ private:
 
   float _radius;
 
+  /**  Coefficients which define the best fitting plane
+       to the given point cloud. 
+       _Ax + _By + _Cz + _D = 0  */
+  float _a,_b,_c,_d;
+
 public:
 
   /** Clockwise/ counter-clockwise. */
@@ -73,6 +84,16 @@ public:
   /** Finds a 3D circle which fits ALL the points in in_cloud. */
   circle3d(pcl::PointCloud<pcl::PointXYZRGB>::Ptr in_cloud);
 
+  /** Returns a point on this circle closest to the given PT. */
+  Eigen::Vector3f snap_to_circle(Eigen::Vector3f pt);
+
+  /** Displays:
+      1. The input points.
+      2. The best fitting 3D circle.
+      3. The given coordinate frame and the coordinate frame at 0,0,0
+      4. The best fitting plane. */
+  void visualize_data(Eigen::MatrixXf &frame);
+
   /** Saves an orthogonal matrix corresponding to a basis defined
       on the "best fitting" plane to the given point-cloud in the matrix BASIS [input].
       The z-axis (col(3)) points in the direction of the normal.
@@ -80,6 +101,7 @@ public:
 
       Returns the projections of the points on the plane found. */
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr get_plane_basis(Eigen::Matrix3f &basis,
+							 Eigen::Vector4f &coeffs,
 							 bool verbose=false);
 
   /** Fits a circle to the points in the given 3D  pointcloud
@@ -104,7 +126,8 @@ public:
       starting at the REFERENCE_PT, in the DIR direction.
       Returns the TRANSFORM of the destination point in the world frame.*/
   Eigen::MatrixXf extend_circumference(Eigen::Vector3f reference_pt,
-				       double dist, orientation dir);
+				       double dist, orientation dir,
+				       bool visualize=false);
 };
 
 #endif
