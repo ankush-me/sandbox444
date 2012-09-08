@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <pcl/point_types.h>
+#include <math.h>
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "test_circle");
@@ -16,10 +17,11 @@ int main(int argc, char** argv) {
 
   // Generate the data
   for (size_t i = 0; i < cloud->points.size (); ++i) {
-    cloud->points[i].x = 1024 * rand () / (RAND_MAX + 1.0f);
-    cloud->points[i].y = 1024 * rand () / (RAND_MAX + 1.0f);
+    cloud->points[i].x = -1.0f + float(i)*(2.0/cloud->points.size());// + (rand () / (RAND_MAX + 1.0f));
+    cloud->points[i].y = sqrt(1.0 - cloud->points[i].x*cloud->points[i].x) + 0.07*(rand () / (RAND_MAX + 1.0f));
     cloud->points[i].z = 1.0;
-    cloud->points[i].r = cloud->points[i].g = cloud->points[i].b =0;
+
+    //pt.r = pt.g = pt.b =0;
   }
 
   // Set a few outliers
