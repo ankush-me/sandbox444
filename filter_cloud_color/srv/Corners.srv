@@ -1,0 +1,4 @@
+----
+filter_cloud_color/ImageCorner[4] imageCorners
+geometry_msgs/Point[4] pcCorners
+geometry_msgs/Point[4] boxCorners

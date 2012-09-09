@@ -87,7 +87,7 @@ struct {
 /*
   Default values for command line options.
 */
-std::string LocalConfig::pcTopic = "/kinect/depth_registered/points";
+std::string LocalConfig::pcTopic = "/camera/depth_registered/points";
 float LocalConfig::downsample = 0.008;
 int LocalConfig::tableMaxH = 10;
 int LocalConfig::tableMinH = 170;

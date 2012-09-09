@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
-set(FILTER_COLOR_CLOUD_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${FILTER_COLOR_CLOUD_DIR}/CMakeModules")
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #-------------------------- Generally useful function ------------------
 function(echo_all_variables)
@@ -45,8 +42,22 @@ endmacro()
 
 #------------------------------------------------------------------------
 
-
 rosbuild_init()
+
+set(FILTER_COLOR_CLOUD_DIR ${PROJECT_SOURCE_DIR})
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${FILTER_COLOR_CLOUD_DIR}/CMakeModules")
+
+#set the default path for built executables to the "bin" directory
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+#set the default path for built libraries to the "lib" directory
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+
+#uncomment if you have defined messages
+rosbuild_genmsg()
+#uncomment if you have defined services
+rosbuild_gensrv()
+
+message(STATUS "here this thing" ${PROJECT_SOURCE_DIR})
 
 set(BULLET_DIR ${FILTER_COLOR_CLOUD_DIR}/../lib/bullet-2.79)
 set(BULLET_PATH "/opt/ros/$ENV{ROS_DISTRO}/stacks/bullet")
@@ -68,6 +79,9 @@ find_package(Boost COMPONENTS program_options  REQUIRED)
 find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
+
+
 include_directories(${PCL_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS}
                     ${BULLET_INCLUDE_DIRS} ${BULLET_DIR}/src
 		    ${FILTER_COLOR_CLOUD_DIR}
@@ -84,15 +98,7 @@ add_subdirectory(${FILTER_COLOR_CLOUD_DIR}/utils)
 add_subdirectory(${FILTER_COLOR_CLOUD_DIR}/src)
 add_subdirectory(${FILTER_COLOR_CLOUD_DIR}/../lib ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/../lib)
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
@@ -109,3 +115,11 @@ target_link_libraries(find_color_points ${PCL_LIBRARIES}
 					cloudOps utils
 					boxFilter
 					${Boost_LIBRARIES})
+
+rosbuild_add_executable(color_associater src/color_point_associater.cpp
+                                         src/filter_config.cpp
+					 src/surgical_extraction.cpp)
+target_link_libraries(color_associater ${PCL_LIBRARIES}
+                                            cloudOps utils
+                                            boxFilter
+                                            ${Boost_LIBRARIES})

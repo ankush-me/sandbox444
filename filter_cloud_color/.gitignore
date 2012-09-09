@@ -5,3 +5,4 @@ build/*
 *cmake_install*
 *CPack*
 *3rdparty_bin*
+*Makefile*

@@ -36,3 +36,15 @@ vector<int> extractInds (int n) {
 
   return inds;
 }
+
+/*
+  Given a vector of vectors, combines to form one vector.
+*/
+template <typename vectype>
+void makeIntoOne (vector< vector <vectype> > *in, 
+		  vector <vectype> *out) {
+  for (int i = 0; i < in->size(); i++) {
+    for (int j = 0; j < in->at(i).size(); j++) 
+      out->push_back(in->at(i)[j]);
+  }
+}
