@@ -5,6 +5,7 @@
      (Basically use more info than just color)
    Maybe extract the sponge by cascading orientedBoxFilters.
    Modularize code.
+   Remove most of bullet.
 */
 
 #include <ros/topic.h>
@@ -24,6 +25,7 @@
 #include "utils/conversions.h"
 
 #include "filter_cloud_color/Corners.h"
+//#include "filter_cloud_color/TableCorners.h"
 
 using namespace Eigen;
 
@@ -51,9 +53,9 @@ struct {
   std::vector<Vector2f> m_imageInds;
 } boxProp;
 
-
 /* 
-   Variables for the callback.
+   Variables to store current pointCloud and whether message is new.
+   Modified in callback/main.
 */
 static ColorCloudPtr cloud_pcl (new ColorCloud);
 bool pending = false;
@@ -69,7 +71,8 @@ bool pending = false;
 bool findNearestPoints (const vector<Vector3f> *inPoints, 
 		       vector<Vector3f> *nearestPoints,
 		       vector<Vector2f> *imageInds,
-		       int minTol=0.001, int maxTol=0.2) {  
+		       int minTol=0.001, int maxTol=1) {  
+
   
   pcl::search::KdTree<ColorPoint>::Ptr 
     tree (new pcl::search::KdTree<ColorPoint>);
@@ -80,6 +83,10 @@ bool findNearestPoints (const vector<Vector3f> *inPoints,
   std::vector<int> indices;
   std::vector<float> dists;
 
+  if (LocalConfig::debugging) {
+    std::cout<<"inPoints size: "<<inPoints->size()<<std::endl;
+  }
+
   for (int i = 0; i < inPoints->size(); ++i) {
 
     float tol = minTol;
@@ -89,6 +96,10 @@ bool findNearestPoints (const vector<Vector3f> *inPoints,
     searchPoint.x = inPoints->at(i)[0];
     searchPoint.y = inPoints->at(i)[1];
     searchPoint.z = inPoints->at(i)[2];
+
+    if (LocalConfig::debugging) {
+      std::cout<<"Search Point: "<<searchPoint<<std::endl;
+    }
 
     while (tol <= maxTol) {
       int ret = tree->radiusSearch(searchPoint, tol, indices, dists, 1);
@@ -116,6 +127,10 @@ bool findNearestPoints (const vector<Vector3f> *inPoints,
       imageInds->push_back(imageInd);
 
       foundFlag = true;
+      if (LocalConfig::debugging) {
+	std::cout<<"Found something." <<point<<std::endl;
+      }
+      break;
     }
     if (!foundFlag)
       return false;
@@ -155,7 +170,9 @@ void initBoxFilter (ColorCloudPtr cloud) {
   
   boxProp.m_trans.setBasis(toBulletMatrix(m_axes));
   boxProp.m_trans.setOrigin
-    (btVector3(boxProp.m_corners(0,0), boxProp.m_corners(0,1), boxProp.m_corners(0,2)));
+    (btVector3(boxProp.m_corners(0,0), 
+	       boxProp.m_corners(0,1), 
+	       boxProp.m_corners(0,2)));
 
   std::vector<Vector3f> corners;
   for (int i=0; i<4; ++i)
@@ -164,7 +181,79 @@ void initBoxFilter (ColorCloudPtr cloud) {
   boxProp.m_foundPC = findNearestPoints(&corners, &boxProp.m_pcPoints,
 					&boxProp.m_imageInds);
 
+  if (LocalConfig::debugging) {
+    for (int i=0; i<4; ++i)
+      std::cout<<"Corner "<<i<<": "<<corners[i]<<std::endl;
+    std::cout<<"Truth: "<< boxProp.m_foundPC<< std::endl;
+  }
+
   boxProp.m_init = true;
+}
+
+/*
+  Filter cascader to filter incoming point clouds.
+*/
+filter_cascader cascader;
+
+/*
+  Function to append filters to a cascader.
+*/
+void createFilter (filter_cascader &cascader) {
+
+  cascader.removeAll();
+
+  //Downsampler
+  if (LocalConfig::downsample) {
+    boost::shared_ptr<downsample_wrapper> 
+      downsampler (new downsample_wrapper());
+    downsampler->setSize(LocalConfig::downsample);
+    cascader.appendFilter(downsampler);
+  }
+
+  //Oriented Box Filter
+  //Maybe add another orientedBoxFilter for the foam block.
+  if (boxProp.m_init) {
+    boost::shared_ptr<orientedBoxFilter_wrapper> 
+      oBoxFilter (new orientedBoxFilter_wrapper());
+    
+    oBoxFilter->setOrigin(toEigenMatrix(boxProp.m_trans.getBasis()));
+    oBoxFilter->setMins(boxProp.m_mins);
+    oBoxFilter->setMaxes(boxProp.m_maxes);
+    
+    cascader.appendFilter(oBoxFilter);
+  }
+
+  //Hue Filter
+  if (LocalConfig::useHF) {
+    boost::shared_ptr<hueFilter_wrapper> 
+      hue_filter (new hueFilter_wrapper());
+
+    hue_filter->setMinHue(LocalConfig::minH);
+    hue_filter->setMaxHue(LocalConfig::maxH);
+    hue_filter->setMaxSat(LocalConfig::maxS);
+    hue_filter->setMinSat(LocalConfig::minS);
+    hue_filter->setMaxVal(LocalConfig::maxV);
+    hue_filter->setMinVal(LocalConfig::minV);
+    
+    cascader.appendFilter(hue_filter);
+  }
+
+  //Outlier remover
+  boost::shared_ptr<removeOutliers_wrapper> 
+    outlier_remover (new removeOutliers_wrapper());
+  
+  cascader.appendFilter(outlier_remover); 
+}
+
+/*
+  Update function in case there is a change in orientation of PR2.
+  Uninitializes properties of the boxFilter. Changes the cascader
+  back to not having a boxFilter.
+*/
+void update() {
+  boxProp.m_init = false;
+  boxProp.m_foundPC = false;
+  createFilter(cascader);
 }
 
 /*
@@ -189,11 +278,33 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 
     if (cloud_color->size() < 50)
       ROS_ERROR("The table cannot be seen.");
-    else
+    else {
       initBoxFilter (cloud_color);
+    }
+    createFilter(cascader);
+ 
   } 
   pending = true;
 }
+
+/*
+  Service call back to return table corners.
+
+bool cornerCallback(filter_cloud_color::Corners::Request &req,
+		    filter_cloud_color::Corners::Response &resp) {
+  if (!boxProp.m_init)
+    return false;
+  else {
+    for (int i=0; i<4; ++i) {
+      Vector3f boxCorner = boxProp.m_corners.row(i).transpose();
+      resp.boxCorners[i].x = boxCorner;
+      resp.boxCorners[i].y = 2;
+      resp.boxCorners[i].z = 3;
+    }
+  }
+  return true;
+}
+*/
 
 /*
   Service call back to return corners.
@@ -201,7 +312,7 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 bool cornerCallback(filter_cloud_color::Corners::Request &req,
 		    filter_cloud_color::Corners::Response &resp) {
   if (!boxProp.m_init || !boxProp.m_foundPC)
-    return false;
+    return true;
   else {
     for (int i=0; i<4; ++i) {
       Vector3f boxCorner = boxProp.m_corners.row(i).transpose();
@@ -217,92 +328,10 @@ bool cornerCallback(filter_cloud_color::Corners::Request &req,
       Vector2f imageInd = boxProp.m_imageInds[i];
       resp.imageCorners[i].row = imageInd[0];
       resp.imageCorners[i].col = imageInd[1];
+      
     }
   }
   return true;
-}
-
-/*
-  Service call back to return corners in the point cloud.
-
-bool pcBoxCornerCallback(filter_cloud_color::PCTableCorners::Request &req,
-		    filter_cloud_color::PCTableCorners::Response &resp) {
-  if (!boxProp.m_foundPC)
-    return false;
-  else {
-    for (int i=0; i<4; ++i) { 
-      Vector3f corner = boxProp.m_.pcPoints[i];
-      resp.corners[i].x = corner[0];
-      resp.corners[i].y = corner[1];
-      resp.corners[i].z = corner[2];
-    }
-  }
-  return true;
-}
-*/
-/*
-  Service call back to return corners in the point cloud.
-
-bool imageCornerCallback(filter_cloud_color::PCTableCorners::Request &req,
-		    filter_cloud_color::PCTableCorners::Response &resp) {
-  if (!boxProp.m_foundPC)
-    return false;
-  else {
-    for (int i=0; i<4; ++i) { 
-      Vector3f corner = boxProp.m_.pcPoints[i];
-      resp.corners[i].x = corner[0];
-      resp.corners[i].y = corner[1];
-      resp.corners[i].z = corner[2];
-    }
-  }
-  return true;
-}
-*/
-
-/*
-  Function to append filters to a cascader.
-*/
-void createFilter (filter_cascader &cascader) {
-
-  //Downsampler
-  if (LocalConfig::downsample) {
-    boost::shared_ptr<downsample_wrapper> 
-      downsampler (new downsample_wrapper());
-    downsampler->setSize(LocalConfig::downsample);
-    cascader.appendFilter(downsampler);
-  }
-
-  //Oriented Box Filter
-  boost::shared_ptr<orientedBoxFilter_wrapper> 
-    oBoxFilter (new orientedBoxFilter_wrapper());
-  
-  oBoxFilter->setOrigin(toEigenMatrix(boxProp.m_trans.getBasis()));
-  oBoxFilter->setMins(boxProp.m_mins);
-  oBoxFilter->setMaxes(boxProp.m_maxes);
-    
-  cascader.appendFilter(oBoxFilter);
-
-  //Hue Filter
-  //Maybe add another orientedBoxFilter for the .
-  if (LocalConfig::useHF) {
-    boost::shared_ptr<hueFilter_wrapper> 
-      hue_filter (new hueFilter_wrapper());
-
-    hue_filter->setMinHue(LocalConfig::minH);
-    hue_filter->setMaxHue(LocalConfig::maxH);
-    hue_filter->setMaxSat(LocalConfig::maxS);
-    hue_filter->setMinSat(LocalConfig::minS);
-    hue_filter->setMaxVal(LocalConfig::maxV);
-    hue_filter->setMinVal(LocalConfig::minV);
-    
-    cascader.appendFilter(hue_filter);
-  }
-
-  //Outlier remover
-  boost::shared_ptr<removeOutliers_wrapper> 
-    outlier_remover (new removeOutliers_wrapper());
-  
-  cascader.appendFilter(outlier_remover); 
 }
 
 /*
@@ -339,11 +368,6 @@ int main (int argc, char* argv[]) {
   ros::ServiceServer service = 
     nh.advertiseService("getCorners", cornerCallback);
 
-  //  ros::Publisher pc_pub = 
-  //  nh.advertise<sensor_msgs::PointCloud2>
-  //  (LocalConfig::camNS + "depth_registered/filtered_points", 5);
-
-
   if(LocalConfig::debugging) 
     std::cout<<"After defining subscriber and service."<<std::endl;
 
@@ -370,8 +394,6 @@ int main (int argc, char* argv[]) {
   if(LocalConfig::debugging) 
     std::cout<<"After first message."<<std::endl;
 
-  filter_cascader cascader;
-  createFilter(cascader);
   pcl::visualization::CloudViewer viewer ("Visualizer");
   
   
@@ -393,20 +415,6 @@ int main (int argc, char* argv[]) {
     } else {
       viewer.showCloud (surgicalUnits_cloud);
     }
-    //std::vector < std::vector <int> > 
-    //colorClusters = findClusters (cloud_pcl_filtered);
-    //std::vector < int > colorCluster;
-    //makeIntoOne (&colorClusters, &colorCluster);
-    //ColorCloudPtr pc2 (new ColorCloud (*cloud_pcl_filtered, colorCluster));
-    //std::vector < std::vector <ColorPoint> > 
-
-    //viewer.showCloud(cloud_pcl_filtered);
-    //viewer.showCloud(pc2);
-
-    //sensor_msgs::PointCloud2 cloud_ros_filtered;
-    //pcl::toROSMsg(*cloud_pcl_filtered, cloud_ros_filtered);
-    
-    //pc_pub.publish(cloud_ros_filtered);
 
     pending = false;
     while (ros::ok() && !pending) {
