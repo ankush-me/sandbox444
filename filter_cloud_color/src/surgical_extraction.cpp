@@ -98,26 +98,37 @@ ColorCloudPtr extractSurgicalUnits (ColorCloudPtr in,
 				    int sutureFlag) {
   
   ColorCloudPtr out (new ColorCloud());
-  
+  bool holeFlag = false, cutFlag = false;
+
   if (holeInds->at(0) == 0) {
-    for (int i = 0; i < holes.size(); i++)
+    for (int i = 0; i < holes.size(); i++) 
       *out = *out + *showHole(in, i+1);
   } else {
-    for (int i = 0; i < holeInds->size(); i++)
-      if (holeInds->at(i) < holes.size())
+    for (int i = 0; i < holeInds->size(); i++) 
+      if (holeInds->at(i) <= holes.size()) {
+	holeFlag = true;
 	*out = *out + *showHole(in, holeInds->at(i));
+      }
+    if (!holeFlag)
+      for (int i = 0; i < holes.size(); i++)
+	*out = *out + *showHole(in, i+1);
   }
 
-  if (cutInds->at(0) == 0) {
+  if (cutInds->at(0) == 0)
     for (int i = 0; i < cuts.size(); i++)
       *out = *out + *showCut(in, i+1);
-  } else {
+  else {
     for (int i = 0; i < cutInds->size(); i++)
-      if (cutInds->at(i) < holes.size())
+      if (cutInds->at(i) <= cuts.size()) {
 	*out = *out + *showCut(in, cutInds->at(i));
+	cutFlag = true;
+      }
+    if (!cutFlag)
+      for (int i = 0; i < cuts.size(); i++)
+	*out = *out + *showCut(in, i+1); 
   }
 
-  if (sutureFlag)
+  if (sutureFlag) 
     *out = *out + *showSuture(in);
   
   return out;

@@ -28,6 +28,11 @@ vector<int> extractInds (int n) {
   else {
     while (n>0) {
       int d = n%10;
+      if (!d) {
+	vector<int> indsZero;
+	indsZero.push_back(0);
+	return indsZero;
+      }
       if (!hasElement(&inds, d))
 	inds.push_back(d);
       n = (n - d)/10;

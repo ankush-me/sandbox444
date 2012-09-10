@@ -340,14 +340,14 @@ bool cornerCallback(filter_cloud_color::Corners::Request &req,
 void testHolesCuts () {
   Cut::Ptr cut1 (new Cut());
   cut1->_H = 176; cut1->_S = 213; cut1->_V = 185;
-  cut1->_Hstd = 4; cut1->_Sstd = 89; cut1->_Vstd = 24;
+  cut1->_Hstd = 2; cut1->_Sstd = 89; cut1->_Vstd = 24;
 
   Cut::Ptr cut2 (new Cut());
   cut2->_H = 113; cut2->_S = 150; cut2->_V = 176;
   cut2->_Hstd = 4; cut2->_Sstd = 40; cut2->_Vstd = 13;
 
-  cuts.push_back(cut2);
   cuts.push_back(cut1);
+  cuts.push_back(cut2);
 
   suture->_H = 105; suture->_S = 150; suture->_V = 150;
   suture->_Hstd = 5; suture->_Sstd = 50; suture->_Vstd = 50; 
@@ -382,6 +382,13 @@ int main (int argc, char* argv[]) {
 
   vector<int> holeInds = extractInds (LocalConfig::holes);
   vector<int> cutInds = extractInds (LocalConfig::cuts);
+
+  if (LocalConfig::debugging) {   
+    for (int i = 0; i < holeInds.size(); i++)
+      std::cout<<"holeInds "<<i<<": "<<holeInds[i]<<std::endl;
+    for (int i = 0; i < cutInds.size(); i++)
+      std::cout<<"cutInds "<<i<<": "<<cutInds[i]<<std::endl;
+  }
 
   while (!pending) {
     ros::spinOnce();

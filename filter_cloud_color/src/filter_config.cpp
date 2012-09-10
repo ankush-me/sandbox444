@@ -1,13 +1,20 @@
 #include "filter_config.h"
 /*
   Default values for command line options.
+  The ones in comments are for red table. And with some downsampling.
+  The ones not in comments are for foam block.
 */
 std::string LocalConfig::pcTopic = "/camera/depth_registered/points";
-float LocalConfig::downsample = 0.008;
-int LocalConfig::tableMaxH = 10;
-int LocalConfig::tableMinH = 170;
-int LocalConfig::tableMaxS = 255;
-int LocalConfig::tableMinS = 150;
+//float LocalConfig::downsample = 0.008;
+float LocalConfig::downsample = 0.0;
+//int LocalConfig::tableMaxH = 10;
+int LocalConfig::tableMaxH = 180;
+//int LocalConfig::tableMinH = 170;
+int LocalConfig::tableMinH = 0;
+//int LocalConfig::tableMaxS = 255;
+int LocalConfig::tableMaxS = 150;
+//int LocalConfig::tableMinS = 150;
+int LocalConfig::tableMinS = 0;
 int LocalConfig::tableMaxV = 255;
 int LocalConfig::tableMinV = 0;
 bool LocalConfig::tableNeg = false;
