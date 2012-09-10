@@ -346,8 +346,8 @@ void testHolesCuts () {
   cut2->_H = 113; cut2->_S = 150; cut2->_V = 176;
   cut2->_Hstd = 4; cut2->_Sstd = 40; cut2->_Vstd = 13;
 
-  cuts.push_back(cut1);
   cuts.push_back(cut2);
+  cuts.push_back(cut1);
 
   suture->_H = 105; suture->_S = 150; suture->_V = 150;
   suture->_Hstd = 5; suture->_Sstd = 50; suture->_Vstd = 50; 

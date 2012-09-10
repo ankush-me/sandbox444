@@ -23,10 +23,10 @@ ColorCloudPtr showHole (ColorCloudPtr in, int index) {
   
   uint8_t hole_minH = (hole->_H - HUE_STD_SCALE*hole->_Hstd)%180;
   uint8_t hole_maxH = (hole->_H + HUE_STD_SCALE*hole->_Hstd)%180;
-  uint8_t hole_minS = (hole->_S - hole->_Sstd)%255;
-  uint8_t hole_maxS = (hole->_S + hole->_Sstd)%255;
-  uint8_t hole_minV = (hole->_V - hole->_Vstd)%255;
-  uint8_t hole_maxV = (hole->_V + hole->_Vstd)%255;
+  uint8_t hole_minS = (hole->_S - hole->_Sstd > 0) ? hole->_S - hole->_Sstd : 0;
+  uint8_t hole_maxS = (hole->_S + hole->_Sstd < 255) ? hole->_S + hole->_Sstd : 255;
+  uint8_t hole_minV = (hole->_V - hole->_Vstd > 0) ? hole->_V - hole->_Vstd : 0;
+  uint8_t hole_maxV = (hole->_V + hole->_Vstd < 255) ? hole->_V + hole->_Vstd : 255;
   
   hueFilter_wrapper 
     hole_HF (hole_minH, hole_maxH, hole_minS, hole_maxS,
@@ -48,10 +48,10 @@ ColorCloudPtr showCut (ColorCloudPtr in, int index) {
   
   uint8_t cut_minH = (cut->_H - HUE_STD_SCALE*cut->_Hstd)%180;
   uint8_t cut_maxH = (cut->_H + HUE_STD_SCALE*cut->_Hstd)%180;
-  uint8_t cut_minS = (cut->_S - cut->_Sstd)%255;
-  uint8_t cut_maxS = (cut->_S + cut->_Sstd)%255;
-  uint8_t cut_minV = (cut->_V - cut->_Vstd)%255;
-  uint8_t cut_maxV = (cut->_V + cut->_Vstd)%255;
+  uint8_t cut_minS = (cut->_S - cut->_Sstd > 0) ? cut->_S - cut->_Sstd : 0;
+  uint8_t cut_maxS = (cut->_S + cut->_Sstd < 255) ? cut->_S + cut->_Sstd : 255;
+  uint8_t cut_minV = (cut->_V - cut->_Vstd > 0) ? cut->_V - cut->_Vstd : 0;
+  uint8_t cut_maxV = (cut->_V + cut->_Vstd < 255) ? cut->_V + cut->_Vstd : 255;
   
   hueFilter_wrapper 
     cut_HF (cut_minH, cut_maxH, cut_minS, cut_maxS,
@@ -72,10 +72,10 @@ ColorCloudPtr showSuture (ColorCloudPtr in) {
 
   uint8_t suture_minH = (suture->_H - HUE_STD_SCALE*suture->_Hstd)%180;
   uint8_t suture_maxH = (suture->_H + HUE_STD_SCALE*suture->_Hstd)%180;
-  uint8_t suture_minS = (suture->_S - suture->_Sstd)%255;
-  uint8_t suture_maxS = (suture->_S + suture->_Sstd)%255;
-  uint8_t suture_minV = (suture->_V - suture->_Vstd)%255;
-  uint8_t suture_maxV = (suture->_V + suture->_Vstd)%255;
+  uint8_t suture_minS = (suture->_S - suture->_Sstd > 0) ? suture->_S - suture->_Sstd : 0;
+  uint8_t suture_maxS = (suture->_S + suture->_Sstd < 255) ? suture->_S + suture->_Sstd : 255;
+  uint8_t suture_minV = (suture->_V - suture->_Vstd > 0) ? suture->_V - suture->_Vstd : 0;
+  uint8_t suture_maxV = (suture->_V + suture->_Vstd < 255) ? suture->_V + suture->_Vstd : 255;
   
   hueFilter_wrapper 
     suture_HF (suture_minH, suture_maxH, suture_minS, suture_maxS,
