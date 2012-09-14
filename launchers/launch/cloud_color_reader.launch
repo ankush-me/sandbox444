@@ -1,6 +1,15 @@
 <launch>
+
+  <arg name="image_topic" default="/cloud_image" />
+  <arg name="cloud_topic" default="/drop/points" />
+
   <node pkg="utils_pcl" type="cloud_to_image" name="cloud_to_image" output="screen">
-    <param name="image_topic" type="string" value="/cloud_image1" />
-    <param name="cloud_topic" type="string" value="/drop/points1" />
+    <param name="image_topic" type="string" value="$(arg image_topic)" />
+    <param name="cloud_topic" type="string" value="$(arg cloud_topic)" />
   </node>
+
+  <node pkg="utils_cv" type="color_detector" name="cloud_reader" output="screen">
+    <param name="topic" type="string" value="$(arg image_topic)" />
+  </node>
+
 </launch>

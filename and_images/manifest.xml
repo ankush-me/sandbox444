@@ -10,6 +10,7 @@
   <url>http://ros.org/wiki/and_images</url>
   <depend package="roscpp"/>
   <depend package="utils_cv"/>
+  <depend package="utils_pcl"/>
   <depend package="cv_bridge"/>
   <depend package="sensor_msgs"/>
   <depend package="opencv2"/>

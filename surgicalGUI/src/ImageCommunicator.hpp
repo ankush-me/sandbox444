@@ -77,7 +77,8 @@ private:
 	  return;
 	}
       } catch (std::runtime_error ex2) {
-	ROS_ERROR("Surgic@lGUI.ImageCommunicator:Error in converting cloud to image message: %s", ex2.what());
+	ROS_ERROR("Surgic@lGUI.ImageCommunicator:Error in converting cloud to image message: %s", 
+		  ex2.what());
 	return;
       }
 
@@ -90,24 +91,23 @@ private:
 public:
   ImageCommunicator(ros::NodeHandle * nh_ptr,
 		    std::string cloud_topic="/camera/depth_registered/points",
-		    std::string window_name="SurgiC@l") : _gui(NULL),
-							  _nh_ptr(nh_ptr),
-							  _cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(480,640)),
-							  _cloud_ptr_ros(new sensor_msgs::PointCloud2),
-							  _sensor_image(),
-							  _main_frame(cv::Mat::zeros(480,
-										     640,
-										     CV_32FC3)),
-							  _working_frame(),
-							  _is_fixed(false),
-							  _window_name(window_name),
-							  _cloud_topic(cloud_topic)  {
-  _cloud_sub = _nh_ptr->subscribe(_cloud_topic, 1,
-				  &ImageCommunicator::cloudCB, this);
-  cv::namedWindow(_window_name);
-  cv::imshow(_window_name, _main_frame);
+		    std::string window_name="SurgiC@l") 
+  : _gui(NULL),
+    _nh_ptr(nh_ptr),
+    _cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(480,640)),
+    _cloud_ptr_ros(new sensor_msgs::PointCloud2),
+    _sensor_image(),
+    _main_frame(cv::Mat::zeros(480,640,CV_32FC3)),
+    _working_frame(),
+    _is_fixed(false),
+    _window_name(window_name),
+    _cloud_topic(cloud_topic)  {
+    _cloud_sub = _nh_ptr->subscribe(_cloud_topic, 1,
+				    &ImageCommunicator::cloudCB, this);
+    cv::namedWindow(_window_name);
+    cv::imshow(_window_name, _main_frame);
   }
-
+  
   void set_gui(SurgicalGUI * gui) {
     _gui = gui;
     cv::setMouseCallback(_window_name, mouseHandler, (void *) _gui);

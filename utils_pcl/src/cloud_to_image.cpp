@@ -8,11 +8,12 @@
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "cloud_to_point");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
 
   std::string cloud_topic; 
   nh.param<std::string>("cloud_topic", cloud_topic,
 			"/camera/depth_registered/points");
+  ROS_INFO("Subscribing to %s for pointclouds.", cloud_topic.c_str());
 
   std::string image_topic;
   nh.param<std::string>("image_topic", image_topic, "/cloud_to_image");

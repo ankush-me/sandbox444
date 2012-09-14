@@ -10,4 +10,3 @@ int main() {
   std::cout<<"circum pt: \n"<<pt<<std::endl;
   return 0;
 }
-
