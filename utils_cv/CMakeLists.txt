@@ -26,6 +26,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 #common commands for building c++ executables and libraries
 rosbuild_add_library(HueFilter src/HueFilter.cpp)
+rosbuild_add_library(SaturationFilter src/SaturationFilter.cpp)
 rosbuild_add_library(ImageAND src/ImageAND.cpp)
 rosbuild_add_library(CannyBlur src/CannyBlur.cpp)
 

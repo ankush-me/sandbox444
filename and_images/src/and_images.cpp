@@ -15,6 +15,7 @@
 #include <utils_cv/CannyBlur.hpp>
 #include <utils_cv/ImageProcessor.hpp>
 #include <utils_cv/HueFilter.hpp>
+#include <utils_cv/SaturationFilter.hpp>
 #include <utils_pcl/CloudImageComm.hpp>
 
 using namespace cv;
@@ -22,6 +23,7 @@ using namespace cv;
 ImageProcessor::Ptr cannyblur(new CannyBlur);
 ImageAND ander(cannyblur,3);
 HueFilter hFilter(75, 85);
+SaturationFilter sFilter(50, 255);
 
 /** Class for finding a needle (macro sized, circular) in an organized point cloud. */
 class NeedleFinder : CloudImageComm {
@@ -46,12 +48,14 @@ class NeedleFinder : CloudImageComm {
 	cv::circle(circular_mask, center, radius, 255, 7, 8, 0);
       }
 
-      cv::Mat hue_mask;
+      cv::Mat hue_mask, sat_mask, color_mask;
       hFilter.filter(_img_cv, hue_mask, true);
+      sFilter.filter(_img_cv, sat_mask, true);
+      cv::bitwise_and(hue_mask, sat_mask, color_mask);
 
       cv::imshow("Original", _img_cv);
       cv::waitKey(5);
-      cv::imshow("Hue Filtered", hue_mask);
+      cv::imshow("Hue and Saturation Filtered", color_mask);
       cv::waitKey(5);
       cv::imshow("Hough Circles: ANDed", circular_mask);
       cv::waitKey(5);
