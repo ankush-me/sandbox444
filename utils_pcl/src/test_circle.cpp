@@ -1,3 +1,6 @@
+/** Tests fitting a 3D circle to a point-cloud.
+    Author: Ankush Gupta .*/
+
 #include <ros/ros.h>
 #include <utils_pcl/cloud_utils.hpp>
 

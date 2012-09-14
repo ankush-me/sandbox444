@@ -8,11 +8,14 @@
 
 #include <cv.h>
 #include <opencv2/core/core.hpp>
+
 #include <pcl/point_types.h>
+#include <pcl/ros/conversions.h>
+
 #include <boost/shared_ptr.hpp>
 
 class CloudImageComm {
-proctected:
+protected:
   /** Shared pointer to an CloudImageComm. */
   typedef boost::shared_ptr<CloudImageComm> Ptr;
 
@@ -21,6 +24,9 @@ proctected:
 
   /** Subscriber for getting new point clouds. */
   ros::Subscriber  _cloud_sub;
+
+  /** The name of the topic on which the point_cloud is being published. */
+  std::string _cloud_topic;
 
   /** The latest point-cloud recieved. */
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloud_ptr;
@@ -34,6 +40,8 @@ proctected:
   /** The latest image recieved in opencv format. */
   cv::Mat _img_cv;
 
+
+
   /** Called when this recieves a new point-cloud. */
   void cloudCB(const sensor_msgs::PointCloud2::ConstPtr cloud_ros) {
     _cloud_ptr.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -42,9 +50,9 @@ proctected:
     // get image from the point-cloud
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      pcl::toROSMsg (*cloud_ros, _sensor_image);
+      pcl::toROSMsg (*cloud_ros, _img_ros);
       try {
-	cv_ptr = cv_bridge::toCvCopy(_sensor_image);
+	cv_ptr = cv_bridge::toCvCopy(_img_ros);
       } catch (cv_bridge::Exception& ex1) {
 	ROS_ERROR("utils_cloud.CloudImageComm : cv_bridge exception: %s", ex1.what());
 	return;
@@ -55,7 +63,7 @@ proctected:
       return;
     }
 
-    _img_cv    = cv_ptr->image.clone(); 
+    _img_cv  = cv_ptr->image.clone(); 
     this->process();
   }
 
