@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="utils_pcl" type="cloud_to_image" name="cloud_to_image" output="screen">
+    <param name="image_topic" type="string" value="/cloud_image1" />
+    <param name="cloud_topic" type="string" value="/drop/points1" />
+  </node>
+</launch>
