@@ -28,7 +28,7 @@ uint8_t HueFilter::get_min() { return _h_min;}
 void HueFilter::filter(cv::Mat &src, cv::Mat &dest, bool isMask) {
   cv::Mat imgHSV;
   if (src.channels() == 3)
-    cv::cvtColor(src,imgHSV,CV_RGB2HSV);
+    cv::cvtColor(src,imgHSV,CV_BGR2HSV);
   else
     src.copyTo(imgHSV);
 

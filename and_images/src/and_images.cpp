@@ -19,42 +19,9 @@
 
 using namespace cv;
 
-
 ImageProcessor::Ptr cannyblur(new CannyBlur);
 ImageAND ander(cannyblur,3);
-HueFilter hFilter(20,40);
-
-/** Class for publishing an image extracted from a point cloud on a topic. */
-class CloudToImage : CloudImageComm {
-
-  /** The name of the topic on which the image is to be advertised.*/
-  std::string _img_out_topic;
-
-  /** The image publisher. */
-  ros::Publisher  _image_pub;
-
-  /** This is called whenever a new point-cloud is recieved. */
-  void process() {
-    this->publish_image();
-  }
-
-  void publish_image() {
-    _image_pub.publish(_img_ros);
-  }
-
-public:
-  CloudToImage(ros::NodeHandle * nh_ptr,
-	       std::string image_out_topic="/cloud_to_image/image_rect_color",
-	       std::string cloud_topic="/camera/depth_registered/points") 
-    : CloudImageComm(nh_ptr, cloud_topic),
-      _img_out_topic(image_out_topic)
-  { 
-    ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
-    _image_pub = _nh_ptr->advertise<sensor_msgs::Image>(_img_out_topic, 1);
-  }
-};
-
-
+HueFilter hFilter(75, 85);
 
 /** Class for finding a needle (macro sized, circular) in an organized point cloud. */
 class NeedleFinder : CloudImageComm {
@@ -72,7 +39,7 @@ class NeedleFinder : CloudImageComm {
 		       2, debug_mat.rows/3, 200, 100,50,75);
 
       cv::Mat circular_mask = cv::Mat::zeros(_img_cv.size(), _img_cv.type());
-      for( size_t i = 0; i < circles.size(); i++ ) {
+      for( size_t i = 0; i < circles.size(); i+=1 ) {
 	cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
 	int radius = cvRound(circles[i][2]);
 	// Draw the circle outline
@@ -101,13 +68,11 @@ public:
 int main(int argc, char** argv) {
 
   ros::init(argc, argv, "and_image_node");
-  ros::NodeHandle nh("and_image_node");
+  ros::NodeHandle nh("~");
 
   std::string topic; 
-  nh.param<std::string>("topic", topic, "/camera/rgb/image_rect");
+  nh.param<std::string>("cloud_topic", topic, "/camera/depth_registered/points");
   NeedleFinder n_finder(&nh, topic);
-
-  //ros::Subscriber sub = nh.subscribe(topic, 1, imageCB);
 
   ros::spin();
   return 0;
