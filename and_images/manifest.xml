@@ -14,6 +14,7 @@
   <depend package="cv_bridge"/>
   <depend package="sensor_msgs"/>
   <depend package="opencv2"/>
+  <depend package="pcl"/>
 
 </package>
 
