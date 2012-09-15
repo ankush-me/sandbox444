@@ -172,20 +172,6 @@ class NeedleFinder : CloudImageComm {
     if (ander.is_ready()) {
       cv::Mat and_img = ander.get();
 
-      cv::Mat debug_mat;
-      cv::GaussianBlur(and_img, debug_mat, cv::Size(9,9), 2, 2);
-      std::vector<cv::Vec3f> circles;
-      cv::HoughCircles(debug_mat, circles, CV_HOUGH_GRADIENT,
-		       2, debug_mat.rows/4, 100, 100,50,90);
-
-      cv::Mat circular_mask = cv::Mat::zeros(img.size(), CV_8UC1);
-      for( size_t i = 0; i < circles.size(); i+=1 ) {
-	cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-	int radius = cvRound(circles[i][2]);
-	// Draw the circle outline
-	cv::circle(circular_mask, center, radius, 255, 10, 8, 0);
-      }
-
       cv::Mat hue_mask, sat_mask, color_mask;
       hFilter.filter(img, hue_mask, true);
       sFilter.filter(img, sat_mask, true);
@@ -202,9 +188,6 @@ class NeedleFinder : CloudImageComm {
       imshow("Color Mask", color_mask);
       waitKey(5);
       
-      imshow("dilation+blur", temp);
-      waitKey(5);
-
       vector<vector<Point> > contours;
       vector<Vec4i> hierarchy;
       findContours(temp, contours, hierarchy,
@@ -221,54 +204,19 @@ class NeedleFinder : CloudImageComm {
       imshow("blob", drawing);
       waitKey(5);
 
-
-      /**cv::Mat blurred,temp1;
-      dilation(color_mask, temp1,1);
-      medianBlur(temp1, temp1, 3);
-      cv::imshow("Median Blur", temp1);
-      cv::waitKey(5);
-
-      erosion(temp1, temp1);
-
-      cv::GaussianBlur(temp1, blurred, cv::Size(9,9), 2, 2);
-      cv::threshold(blurred, blurred, 5, 255, THRESH_BINARY);
-      cv::GaussianBlur(blurred, blurred, cv::Size(9,9), 2, 2);
-      cv::GaussianBlur(blurred, blurred, cv::Size(9,9), 2, 2);
-      //cv::GaussianBlur(blurred, blurred, cv::Size(9,9), 2, 2);
-      dilation(blurred, temp1);
-      erosion(blurred, blurred);
-      cv::GaussianBlur(temp1, temp1, cv::Size(9,9), 2, 2);
-      cv::threshold(temp1, temp1, 5, 255, THRESH_BINARY);
-      erosion(temp1, temp1);
-      erosion(temp1, temp1);
-
-      cv::imshow("CIRCLES 2: SEED", temp1);
-      cv::waitKey(5);
-
-      pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(temp1);
+      pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(drawing);
       if (image_cloud->points.size() != 0) {
-      cv::Vec3f ccenter; float cradius;
-      get_circle2D_ransac(image_cloud, ccenter, cradius);
-      cv::Mat circular_mask2 = img.clone();
-      cv::Point center2(cvRound(ccenter[0]), cvRound(ccenter[1]));
-      if (cradius < 150 && cradius > 50)
-	cv::circle(circular_mask2, center2, cradius, 255, 10, 8, 0);
-      cv::imshow("CIRCLES 2", circular_mask2);
-      cv::waitKey(5);
-      }*/
-      ///////////////////////////////////////////////////////
-
-      
-      // AND the color-space mask and the circular hough space mask
-      /*cv::Mat needle_mask;
-      cv::bitwise_and(color_mask, circular_mask, needle_mask);
-
-      cv::imshow("Hue and Saturation Filtered", color_mask);
-      cv::waitKey(5);
-      cv::imshow("Needle Mask", needle_mask);
-      cv::waitKey(5);*/
-
+	cv::Vec3f ccenter; float cradius;
+	get_circle2D_ransac(image_cloud, ccenter, cradius);
+	cv::Mat circular_mask2 = img.clone();
+	cv::Point center2(cvRound(ccenter[0]), cvRound(ccenter[1]));
+	if (cradius < 150 && cradius > 50)
+	  cv::circle(circular_mask2, center2, cradius, 255, 10, 8, 0);
+	cv::imshow("CIRCLES 2", circular_mask2);
+	cv::waitKey(5);
+      }
       //cloud_from_image(needle_mask);
+      //////////////////////////////////////////////////////
     }
   }
 
