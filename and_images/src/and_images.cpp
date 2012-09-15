@@ -270,21 +270,24 @@ class NeedleFinder : CloudImageComm {
 	if (radius < 150 && radius > 50) {
 	  circle_info info(pcenter, radius);
 	  circle_averager.append_element(info);
-	}
-
-	if (circle_averager.is_ready()) {
-	  circle_info avg_circle;
-	  avg_circle = circle_averager.average();
 	
-	  circle(circular_mask, avg_circle.center, avg_circle.radius, 255, 10, 8, 0);
-	  imshow("Circle mask", circular_mask);
-	  waitKey(5);
+	  if (circle_averager.is_ready()) {
+	    circle_info avg_circle;
+	    avg_circle = (circle_averager.average() + info) / 2;
+	
+	    circle(circular_mask, avg_circle.center, avg_circle.radius*0.9, 255, 40, 8, 0);
+	    imshow("Circle mask", circular_mask + color_mask);
+	    waitKey(5);
 
-	  bitwise_and(color_mask, circular_mask, circular_mask);
-	  cloud_from_image(circular_mask);
+	    bitwise_and(color_mask, circular_mask, circular_mask);
+	    cloud_from_image(circular_mask);
+	  }
 	}
       }
     }
+    imshow("Original", img);
+    waitKey(5);
+
   }
 
 public:
