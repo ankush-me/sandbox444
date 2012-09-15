@@ -177,34 +177,7 @@ class NeedleFinder : CloudImageComm {
       sFilter.filter(img, sat_mask, true);
       cv::bitwise_and(hue_mask, sat_mask, color_mask);
 
-      /////////////////// EXPERIMENTAL /////////////////////
-      Mat temp,inliers;
-      
-      dilation(color_mask, temp,2);
-      GaussianBlur(temp, temp, cv::Size(3,3), 2, 2);
-      threshold(temp, temp, 5, 255, THRESH_BINARY);
-      erosion(temp, temp, 3);
-
-      imshow("Color Mask", color_mask);
-      waitKey(5);
-      
-      vector<vector<Point> > contours;
-      vector<Vec4i> hierarchy;
-      findContours(temp, contours, hierarchy,
-		   CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
-
-      Mat drawing = Mat::zeros(temp.size(), CV_8UC1);
-      for( int i = 0; i< contours.size(); i++ ) {
-	double contArea = contourArea(contours[i]);
-	if (contArea > 10)
-	  drawContours(drawing, contours, i, 255, 2, 8,
-		       hierarchy, 0, Point());
-      }
-
-      imshow("blob", drawing);
-      waitKey(5);
-
-      pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(drawing);
+      pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(color_mask);
       if (image_cloud->points.size() != 0) {
 	cv::Vec3f ccenter; float cradius;
 	get_circle2D_ransac(image_cloud, ccenter, cradius);
@@ -216,7 +189,6 @@ class NeedleFinder : CloudImageComm {
 	cv::waitKey(5);
       }
       //cloud_from_image(needle_mask);
-      //////////////////////////////////////////////////////
     }
   }
 
@@ -264,3 +236,30 @@ int main(int argc, char** argv) {
 
   return 0;
 }
+
+/*////////////////// EXPERIMENTAL /////////////////////
+Mat temp,inliers;
+      
+dilation(color_mask, temp,2);
+GaussianBlur(temp, temp, cv::Size(3,3), 2, 2);
+threshold(temp, temp, 5, 255, THRESH_BINARY);
+erosion(temp, temp, 3);
+
+imshow("Color Mask", color_mask);
+waitKey(5);
+      
+vector<vector<Point> > contours;
+vector<Vec4i> hierarchy;
+findContours(temp, contours, hierarchy,
+	     CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
+
+Mat drawing = Mat::zeros(temp.size(), CV_8UC1);
+for( int i = 0; i< contours.size(); i++ ) {
+  double contArea = contourArea(contours[i]);
+  if (contArea > 10)
+    drawContours(drawing, contours, i, 255, 2, 8,
+		 hierarchy, 0, Point());
+ }
+
+imshow("blob", drawing);
+waitKey(5);*/
