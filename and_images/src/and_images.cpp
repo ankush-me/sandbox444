@@ -22,8 +22,7 @@
 #include <pcl/filters/project_inliers.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/console/parse.h>
-
+#include <pcl/filters/statistical_outlier_removal.h>
 
 #include <utils_cv/ImageAND.hpp>
 #include <utils_cv/CannyBlur.hpp>
@@ -46,9 +45,9 @@ void dilation(cv::Mat &src, cv::Mat &dst, int s=5 ) {
   cv::dilate( src, dst, element );
 }
 
-void erosion(cv::Mat &src, cv::Mat &dst ) {
+void erosion(cv::Mat &src, cv::Mat &dst, int s=5 ) {
   int dilation_type = cv::MORPH_ELLIPSE;
-  int dilation_size = 5;
+  int dilation_size = s;
   cv::Mat element = cv::getStructuringElement( dilation_type,
 					       cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
 					       cv::Point( dilation_size, dilation_size ) );
@@ -60,7 +59,7 @@ void erosion(cv::Mat &src, cv::Mat &dst ) {
     The image is expected to be a single channel image. If not
     only the first channel is taken into consideration. */
 pcl::PointCloud<pcl::PointXYZ>::Ptr
-cloud2D_from_image(cv::Mat img) {
+cloud3D_from_image(cv::Mat img) {
   std::vector<cv::Mat> channels;
   cv::split(img, channels);
   cv::Mat ch0 =  channels[0];
@@ -80,6 +79,15 @@ cloud2D_from_image(cv::Mat img) {
     }
   }
   return out_cloud;
+}
+
+/** Returns an image corresponding to point in the cloud.*/
+cv::Mat image_from_cloud3D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+			   unsigned int rows, unsigned int cols) {
+  cv::Mat img =  cv::Mat::zeros(cv::Size(cols, rows), CV_8UC1);
+  for (int i = 0; i < cloud->points.size();i+=1)
+    img.at<uint8_t>(cvRound(cloud->points.at(i).y), cvRound(cloud->points.at(i).x)) = 255;
+  return img;
 }
 
 
@@ -184,7 +192,37 @@ class NeedleFinder : CloudImageComm {
       cv::bitwise_and(hue_mask, sat_mask, color_mask);
 
       /////////////////// EXPERIMENTAL /////////////////////
-      cv::Mat blurred,temp1;
+      Mat temp,inliers;
+      
+      dilation(color_mask, temp,2);
+      GaussianBlur(temp, temp, cv::Size(3,3), 2, 2);
+      threshold(temp, temp, 5, 255, THRESH_BINARY);
+      erosion(temp, temp, 3);
+
+      imshow("Color Mask", color_mask);
+      waitKey(5);
+      
+      imshow("dilation+blur", temp);
+      waitKey(5);
+
+      vector<vector<Point> > contours;
+      vector<Vec4i> hierarchy;
+      findContours(temp, contours, hierarchy,
+		   CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0,0));
+
+      Mat drawing = Mat::zeros(temp.size(), CV_8UC1);
+      for( int i = 0; i< contours.size(); i++ ) {
+	double contArea = contourArea(contours[i]);
+	if (contArea > 10)
+	  drawContours(drawing, contours, i, 255, 2, 8,
+		       hierarchy, 0, Point());
+      }
+
+      imshow("blob", drawing);
+      waitKey(5);
+
+
+      /**cv::Mat blurred,temp1;
       dilation(color_mask, temp1,1);
       medianBlur(temp1, temp1, 3);
       cv::imshow("Median Blur", temp1);
@@ -207,7 +245,7 @@ class NeedleFinder : CloudImageComm {
       cv::imshow("CIRCLES 2: SEED", temp1);
       cv::waitKey(5);
 
-      pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud2D_from_image(temp1);
+      pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(temp1);
       if (image_cloud->points.size() != 0) {
       cv::Vec3f ccenter; float cradius;
       get_circle2D_ransac(image_cloud, ccenter, cradius);
@@ -217,20 +255,20 @@ class NeedleFinder : CloudImageComm {
 	cv::circle(circular_mask2, center2, cradius, 255, 10, 8, 0);
       cv::imshow("CIRCLES 2", circular_mask2);
       cv::waitKey(5);
-      }
+      }*/
       ///////////////////////////////////////////////////////
 
       
       // AND the color-space mask and the circular hough space mask
-      cv::Mat needle_mask;
+      /*cv::Mat needle_mask;
       cv::bitwise_and(color_mask, circular_mask, needle_mask);
 
       cv::imshow("Hue and Saturation Filtered", color_mask);
       cv::waitKey(5);
       cv::imshow("Needle Mask", needle_mask);
-      cv::waitKey(5);
+      cv::waitKey(5);*/
 
-      cloud_from_image(needle_mask);
+      //cloud_from_image(needle_mask);
     }
   }
 
@@ -248,7 +286,7 @@ public:
     : CloudImageComm(nh_ptr, cloud_topic),
       _viewer(), _debug(debug),
       cannyblur(new CannyBlur),
-      ander(cannyblur, 3),
+      ander(cannyblur, 5),
       hFilter(h_min, h_max),
       sFilter(s_min, s_max){ }
 };
