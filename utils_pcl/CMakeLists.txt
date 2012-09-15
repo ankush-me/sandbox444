@@ -28,9 +28,10 @@ add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
 #rosbuild_gensrv()
 
 #common commands for building c++ executables and libraries
-rosbuild_add_library(CloudUtils src/cloud_utils.cpp)
+rosbuild_add_library(CloudUtils src/cloud_utils.cpp src/CloudViewer.cpp)
 rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
+rosbuild_link_boost(CloudUtils thread)
+
 rosbuild_add_executable(test_circle src/test_circle.cpp)
 target_link_libraries(test_circle CloudUtils)
 

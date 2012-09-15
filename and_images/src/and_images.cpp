@@ -21,6 +21,7 @@
 #include <utils_cv/SaturationFilter.hpp>
 #include <utils_pcl/CloudImageComm.hpp>
 
+
 using namespace cv;
 
 /** Class for finding a needle (macro sized, circular)
@@ -31,19 +32,8 @@ class NeedleFinder : CloudImageComm {
   ImageAND ander;
   HueFilter hFilter;
   SaturationFilter sFilter;
-  pcl::visualization::PCLVisualizer viewer;
-
-  /** Displays a point-cloud. */
-  void visualize_data(pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud) {
-    viewer.removePointCloud("needle points"); 
-    viewer.addPointCloud<pcl::PointXYZRGB>(cloud, "needle points");
-    ros::Rate r(60);
-    while(!viewer.wasStopped()) {
-      viewer.spinOnce(100);
-      ros::spinOnce();
-      r.sleep();
-    }
-  }
+  pcl::visualization::PCLVisualizer _viewer;
+  bool _debug;
 
   /** Returns a pointcloud corresponding to the pixels in the
       IMG which are non-zero. Pixels which have NaN distance information
@@ -51,7 +41,7 @@ class NeedleFinder : CloudImageComm {
       The image is expected to be a single channel image. If not
       only the first channel is taken into consideration. */
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr
-  cloud_from_image(cv::Mat img, bool debug=false) {
+  cloud_from_image(cv::Mat img) {
 
     std::vector<cv::Mat> channels;
     cv::split(img, channels);
@@ -73,16 +63,16 @@ class NeedleFinder : CloudImageComm {
       }
     }
 
-    if (debug) {
+    if (_debug) {
       ROS_INFO("Found %d non-zero pixels. Found %d finite points.",
-	       non_zero_pixels, out_cloud->points.size());
-      visualize_data(out_cloud);
+	       non_zero_pixels, out_cloud->points.size());     
+      if (!_viewer.updatePointCloud(out_cloud, "cloud")) {
+	_viewer.addCoordinateSystem(1.0);
+	_viewer.addPointCloud(out_cloud,"cloud");
+      }
     }
-
     return out_cloud;
   }
-
-
 
 
   /** This is called whenever a new point-cloud is recieved. */
@@ -125,17 +115,23 @@ class NeedleFinder : CloudImageComm {
       cv::imshow("Needle Mask", needle_mask);
       cv::waitKey(5);
 
-      cloud_from_image(needle_mask, true);
+      cloud_from_image(needle_mask);
     }
   }
 
 public:
+  
+  void spin_viewer() {
+    _viewer.spinOnce(50);
+  }
+
   NeedleFinder(ros::NodeHandle * nh_ptr,
 	       std::string cloud_topic="/camera/depth_registered/points",
+	       bool debug=false,
 	       uint8_t h_min=75, uint8_t h_max=90,
 	       uint8_t s_min=50, uint8_t s_max=255) 
     : CloudImageComm(nh_ptr, cloud_topic),
-      viewer("visualizer"),
+      _viewer(), _debug(debug),
       cannyblur(new CannyBlur),
       ander(cannyblur, 3),
       hFilter(h_min, h_max),
@@ -147,11 +143,23 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "and_image_node");
   ros::NodeHandle nh("~");
 
+  bool DEBUG;
+  nh.param<bool>("debug", DEBUG, false);
+  std::cout<<"DEBUG: "<<DEBUG<<std::endl;
+
   std::string topic; 
   nh.param<std::string>("cloud_topic", topic, 
 			"/camera/depth_registered/points");
-  NeedleFinder n_finder(&nh, topic);
 
-  ros::spin();
+  NeedleFinder n_finder(&nh, topic, DEBUG);
+
+  ros::Rate rate(60);
+  while(ros::ok()) {
+    if (DEBUG)
+      n_finder.spin_viewer();     
+  ros::spinOnce();
+  rate.sleep();
+  }
+
   return 0;
 }

@@ -21,8 +21,6 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #uncomment if you have defined services
 #rosbuild_gensrv()
 include_directories("/usr/include/vtk-5.8")
-FIND_PACKAGE(VTK REQUIRED)
-INCLUDE(${VTK_USE_FILE})
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
@@ -30,4 +28,4 @@ INCLUDE(${VTK_USE_FILE})
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 rosbuild_add_executable(and_test src/and_images.cpp)
-target_link_libraries(and_test vtkCommon vtkFiltering)
+target_link_libraries(and_test vtkCommon vtkFiltering vtkRendering CloudUtils)
