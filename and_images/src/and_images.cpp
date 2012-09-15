@@ -39,20 +39,23 @@ using namespace cv;
 void dilation(cv::Mat &src, cv::Mat &dst, int s=5 ) {
   int dilation_type = cv::MORPH_ELLIPSE;
   int dilation_size = s;
-  cv::Mat element = cv::getStructuringElement( dilation_type,
-					       cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
-					       cv::Point( dilation_size, dilation_size ) );
-  cv::dilate( src, dst, element );
+  cv::Mat element = cv::getStructuringElement(dilation_type,
+					      cv::Size( 2*dilation_size + 1, 2*dilation_size+1),
+					      cv::Point( dilation_size, dilation_size));
+  cv::dilate(src, dst, element);
 }
 
+/** Erodes the SRC matrix into DST.
+    See Morphological functions in opencv.*/
 void erosion(cv::Mat &src, cv::Mat &dst, int s=5 ) {
-  int dilation_type = cv::MORPH_ELLIPSE;
-  int dilation_size = s;
-  cv::Mat element = cv::getStructuringElement( dilation_type,
-					       cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
-					       cv::Point( dilation_size, dilation_size ) );
-  cv::erode( src, dst, element );
+  int erosion_type = cv::MORPH_ELLIPSE;
+  int erosion_size = s;
+  cv::Mat element = cv::getStructuringElement(erosion_type,
+					      cv::Size( 2*erosion_size + 1, 2*erosion_size+1),
+					      cv::Point( erosion_size, erosion_size));
+  cv::erode(src, dst, element);
 }
+
 
 /** Returns a 2D pointcloud corresponding to the pixels in the
     IMG which are non-zero.
@@ -161,7 +164,6 @@ class NeedleFinder : CloudImageComm {
   }
 
 
-
   /** This is called whenever a new point-cloud is recieved. */
   void process() {
     cv::Rect roi(100,50,420,350);
@@ -176,19 +178,20 @@ class NeedleFinder : CloudImageComm {
       hFilter.filter(img, hue_mask, true);
       sFilter.filter(img, sat_mask, true);
       cv::bitwise_and(hue_mask, sat_mask, color_mask);
-
+      
+      Mat circular_mask = Mat::zeros(img.size(), CV_8UC1);
       pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(color_mask);
       if (image_cloud->points.size() != 0) {
-	cv::Vec3f ccenter; float cradius;
-	get_circle2D_ransac(image_cloud, ccenter, cradius);
-	cv::Mat circular_mask2 = img.clone();
-	cv::Point center2(cvRound(ccenter[0]), cvRound(ccenter[1]));
-	if (cradius < 150 && cradius > 50)
-	  cv::circle(circular_mask2, center2, cradius, 255, 10, 8, 0);
-	cv::imshow("CIRCLES 2", circular_mask2);
-	cv::waitKey(5);
+	Vec3f center; float radius;
+	get_circle2D_ransac(image_cloud, center, radius);
+	Point pcenter(cvRound(center[0]), cvRound(center[1]));
+	if (radius < 150 && radius > 50)
+	  circle(circular_mask, pcenter, radius, 255, 10, 8, 0);
+	imshow("Circle mask", circular_mask);
+	waitKey(5);
       }
-      //cloud_from_image(needle_mask);
+      bitwise_and(color_mask, circular_mask, circular_mask);
+      cloud_from_image(circular_mask);
     }
   }
 
