@@ -89,7 +89,8 @@ cv::Mat image_from_cloud3D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 			   unsigned int rows, unsigned int cols) {
   cv::Mat img =  cv::Mat::zeros(cv::Size(cols, rows), CV_8UC1);
   for (int i = 0; i < cloud->points.size();i+=1)
-    img.at<uint8_t>(cvRound(cloud->points.at(i).y), cvRound(cloud->points.at(i).x)) = 255;
+    img.at<uint8_t>(cvRound(cloud->points.at(i).y),
+		    cvRound(cloud->points.at(i).x)) = 255;
   return img;
 }
 
@@ -113,6 +114,85 @@ void get_circle2D_ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr points,
 }
 
 
+/** Structure to hold the parametes of 2D circles. */
+struct circle_info {
+  cv::Point center;
+  float radius;
+
+  circle_info(circle_info  &o) {
+    center = cv::Point(o.center.x, o.center.y);
+    radius  = o.radius;
+  }
+
+  circle_info(Point pt, float r) {
+    center = pt;
+    radius  = r;
+  }
+
+  circle_info(int x=0, int y=0, float r=0) {
+    center = cv::Point(x,y);
+    radius  = r;
+  }
+
+  void operator=(const circle_info& o) {
+    center = cv::Point(o.center.x, o.center.y);
+    radius  = o.radius;
+  }
+
+  circle_info operator+(const circle_info&  other) {
+    circle_info sum;
+    sum.center = cv::Point(center.x + other.center.x,
+			   center.y + other.center.y);
+    sum.radius = radius + other.radius;
+    return sum;
+  }
+
+  circle_info operator/(const float f) {
+    circle_info div;
+    div.center = cv::Point((int) (center.x/f),
+			   (int) (center.y/f));
+    div.radius = radius/f;
+    return div;
+  }
+};
+
+
+template<typename T>
+class averager {
+private:
+  std::list<boost::shared_ptr<T> > elements;
+  unsigned int N;
+  bool ready;
+
+public:
+  averager(unsigned int n) : elements(), N(n),
+			     ready(false) {}
+  
+  void append_element(T &element) {
+    if (ready)
+      elements.pop_front();
+    else
+      ready = (elements.size() >= N);
+    elements.push_back(boost::shared_ptr<T>(new T(element)));
+  }
+
+  bool is_ready() {return ready;}
+
+  T average() {
+    if (ready) {
+      T avg;
+      typename std::list<boost::shared_ptr<T> >::iterator it = elements.begin();
+      for (; it != elements.end(); it++)
+	avg = avg + (**it);
+      avg = avg/N;
+      return avg;
+    } else {
+      throw("Average requested prematurely.");
+    }
+  }
+};
+
+
 /** Class for finding a needle (macro sized, circular)
     in an organized point cloud. */
 class NeedleFinder : CloudImageComm {
@@ -123,6 +203,7 @@ class NeedleFinder : CloudImageComm {
   SaturationFilter sFilter;
   pcl::visualization::PCLVisualizer _viewer;
   bool _debug;
+  averager<circle_info> circle_averager;
 
   /** Returns a pointcloud corresponding to the pixels in the
       IMG which are non-zero. Pixels which have NaN distance information
@@ -185,13 +266,24 @@ class NeedleFinder : CloudImageComm {
 	Vec3f center; float radius;
 	get_circle2D_ransac(image_cloud, center, radius);
 	Point pcenter(cvRound(center[0]), cvRound(center[1]));
-	if (radius < 150 && radius > 50)
-	  circle(circular_mask, pcenter, radius, 255, 10, 8, 0);
-	imshow("Circle mask", circular_mask);
-	waitKey(5);
+
+	if (radius < 150 && radius > 50) {
+	  circle_info info(pcenter, radius);
+	  circle_averager.append_element(info);
+	}
+
+	if (circle_averager.is_ready()) {
+	  circle_info avg_circle;
+	  avg_circle = circle_averager.average();
+	
+	  circle(circular_mask, avg_circle.center, avg_circle.radius, 255, 10, 8, 0);
+	  imshow("Circle mask", circular_mask);
+	  waitKey(5);
+
+	  bitwise_and(color_mask, circular_mask, circular_mask);
+	  cloud_from_image(circular_mask);
+	}
       }
-      bitwise_and(color_mask, circular_mask, circular_mask);
-      cloud_from_image(circular_mask);
     }
   }
 
@@ -210,6 +302,7 @@ public:
       _viewer(), _debug(debug),
       cannyblur(new CannyBlur),
       ander(cannyblur, 5),
+      circle_averager(10),
       hFilter(h_min, h_max),
       sFilter(s_min, s_max){ }
 };
