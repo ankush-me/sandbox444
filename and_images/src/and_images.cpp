@@ -157,6 +157,9 @@ struct circle_info {
 };
 
 
+/** Class for calculating moving averages.
+    Can also be used for accumulating last N
+    samples of a moving quantity. */
 template<typename T>
 class averager {
 private:
@@ -177,6 +180,7 @@ public:
   }
 
   bool is_ready() {return ready;}
+  void clear() {elements.clear(); ready = false;}
 
   T average() {
     if (ready) {
@@ -193,17 +197,227 @@ public:
 };
 
 
+
+/** Class for calculating moving averages.
+    Can also be used for accumulating last N
+    samples of a moving quantity. */
+template<typename T>
+class cloud_accumulator {
+private:
+  std::list<typename pcl::PointCloud<T>::Ptr> _clouds;
+  unsigned int N;
+  bool ready;
+
+public:
+  cloud_accumulator(unsigned int n) : _clouds(), N(n),
+				      ready(false) {}
+  
+  void append_element(typename pcl::PointCloud<T>::Ptr cloud) {
+    if (ready)
+      _clouds.pop_front();
+    else
+      ready = (_clouds.size() >= N);
+    _clouds.push_back(cloud);
+  }
+
+  bool is_ready() {return ready;}
+  void clear() {_clouds.clear(); ready = false;}
+  unsigned int size() {return _clouds.size();}
+
+  typename pcl::PointCloud<T>::Ptr get() {
+    if (ready) {
+      typename pcl::PointCloud<T>::Ptr sum(new pcl::PointCloud<T>);
+      typename std::list<typename pcl::PointCloud<T>::Ptr >::iterator it = _clouds.begin();
+      for (; it != _clouds.end(); it++)
+	*sum = *sum + (**it);
+      return sum;
+    } else {
+      throw("Error: Cloud sum requested prematurely.");
+    }
+  }
+};
+
+
+/** Structure to store HSV values. */
+struct HSV {
+  uint8_t h,s,v;
+  typedef boost::shared_ptr<HSV> Ptr;
+
+  HSV (uint8_t _h, uint8_t _s, uint8_t _v) {
+    h=_h; s=_s; v=_v;
+  }
+
+  HSV (const HSV &o) {
+    h=o.h; s=o.s; v=o.v;
+  }
+};
+
+
+/** Structure to store RGB values. */
+struct RGB {
+  uint8_t r,g,b;
+  typedef boost::shared_ptr<RGB> Ptr;
+
+  RGB (uint8_t _r, uint8_t _g, uint8_t _b) {
+    r=_r; g=_g; b=_b;
+  }
+
+  RGB (const RGB &o) {
+    r=o.r; g=o.g; b=o.b;
+  }
+};
+
+
+/** Converts opencv RGB values to HSV. */
+HSV RGB_to_HSV(uint8_t r, uint8_t g, uint8_t b) {
+  uint8_t pixel_data[] = {r,g,b};
+  cv::Mat pixel(1,1,CV_8UC3, (void*) pixel_data);
+  cv::Mat pixelHSV;
+  cv::cvtColor(pixel,pixelHSV,CV_RGB2HSV);
+  return HSV(pixelHSV.at<uint8_t>(0),
+	     pixelHSV.at<uint8_t>(1),
+	     pixelHSV.at<uint8_t>(2));
+}
+
+/** Converts opencv HSV values to RGB. */
+RGB HSV_to_RGB(uint8_t h, uint8_t s, uint8_t v) {
+  uint8_t pixel_data[] = {h,s,v};
+  cv::Mat pixel(1,1,CV_8UC3, (void*) pixel_data);
+  cv::Mat pixelRGB;
+  cv::cvtColor(pixel,pixelRGB,CV_HSV2RGB);
+  return RGB(pixelRGB.at<uint8_t>(0),
+	     pixelRGB.at<uint8_t>(1),
+	     pixelRGB.at<uint8_t>(2));
+}
+
+
+
+cv::Vec2i histograms(cv::Mat src,bool debug=false, int range_l = 40, 
+		     int range_u = 100, int num_bins=20 ) {
+  Mat hsv;
+  cvtColor(src, hsv, CV_BGR2HSV);
+  vector<Mat> channels;
+  split(hsv, channels);
+
+  Mat hue_channel = channels[0];
+
+  /// Establish the number of bins
+  int histSize = num_bins;
+
+  /// Set the ranges ( for B,G,R) )
+  float range[] = {range_l, range_u} ;
+  const float* histRange = { range };
+
+  bool uniform = true; bool accumulate = false;
+  Mat hue_hist;
+
+  // Compute the histograms:
+  calcHist(&hue_channel, 1, 0, Mat(), hue_hist,
+	   1, &histSize, &histRange, uniform, accumulate );
+
+  ROS_INFO("HIST SIZE: %d", histSize);
+
+  // Draw the histograms for B, G and R
+  int hist_w = 512; int hist_h = 400;
+  int bin_w = cvRound( (double) hist_w/histSize );
+
+  Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+  /// Normalize the result to [ 0, histImage.rows ]
+  normalize(hue_hist, hue_hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
+
+  /// Draw for each channel
+  for( int i = 1; i < histSize; i++ )  {
+    RGB rgb =  HSV_to_RGB(range[0] + (range[1] - range[0])*(i-1)/histSize,255,100);
+
+    line(histImage, Point( bin_w*(i-1), hist_h - cvRound(hue_hist.at<float>(i-1)) ) ,
+	 Point(bin_w*(i), hist_h - cvRound(hue_hist.at<float>(i)) ),
+	 CV_RGB(rgb.r,rgb.g,rgb.b), 2, 8, 0);
+  }
+
+
+  double max_val = -1;
+  int max_loc;
+  int lb=0;
+  int ub=histSize-1;
+
+  for(int i = 0; i < histSize; i++ )  {
+    if (max_val < hue_hist.at<float>(i)) {
+      max_val = hue_hist.at<float>(i);
+      max_loc = i;
+    }
+  }
+
+  int lower_bound = range[0];
+  for(int i = max_loc ; i >=0; i--) {
+    if (hue_hist.at<float>(i) < max_val/10) {
+      std::cout<<"\tlb: "<<i<<std::endl;
+      lower_bound = (int) (range[0] + (range[1] - range[0])*i/float(histSize));
+      lb = i;
+      break;
+    }
+  }
+
+
+  int upper_bound = range[1]-1;
+  for(int i = max_loc ; i < histSize; i++) {
+    if (hue_hist.at<float>(i) < max_val/10) {
+      std::cout<<"\tub: "<<i<<std::endl;
+      upper_bound = (int) (range[0] + (range[1] - range[0])*i/float(histSize));
+      ub = i;
+      break;
+    }
+  }
+
+  line(histImage, Point(lb*bin_w,0), Point(lb*bin_w, hist_h), CV_RGB(255,0,0), 2, 8, 0);
+  line(histImage, Point(ub*bin_w,0), Point(ub*bin_w, hist_h), CV_RGB(255,0,0), 2, 8, 0);
+  line(histImage, Point(max_loc*bin_w,0), Point(max_loc*bin_w, hist_h), CV_RGB(0,255,0), 2, 8, 0);
+
+  if (debug) {
+    ROS_INFO("Peak: %f | Lower: %d | Upper: %d",
+	     max_val, lower_bound, upper_bound);
+
+    namedWindow("calcHist Demo", CV_WINDOW_AUTOSIZE );
+    imshow("calcHist Demo", histImage );
+    waitKey(10);
+  }
+
+  return Vec2i(lower_bound, upper_bound);
+}
+
+
+
+
 /** Class for finding a needle (macro sized, circular)
     in an organized point cloud. */
 class NeedleFinder : CloudImageComm {
 
+  /** used for canny edge dectiong subsequent gaussian blurring. */
   ImageProcessor::Ptr cannyblur;
+
+  /** ANDS several images together and presents the cummulative image. */
   ImageAND ander;
+
+  /** Filters pixels in an image based on their hue value. */
   HueFilter hFilter;
+
+  /** Filters pixels in an image based on their saturation values. */
   SaturationFilter sFilter;
+
+  /** Used to visualize the point cloud of the needle found. */
   pcl::visualization::PCLVisualizer _viewer;
-  bool _debug;
+
+  /** _DEBUG if true prints out debugging statements and
+      shows the needle point-cloud.
+      _SHOULD_PROCESS is an internal flag which when true,
+      indicates that the needle needs to be found. */
+  bool _debug, _should_process;
+
+  /** Averages the circle information. */
   averager<circle_info> circle_averager;
+  
+  /** Accumulates the needle pointcloud over the
+      past five clouds found by 2d processing. */
+  cloud_accumulator<pcl::PointXYZRGB> _needle_accumulator;
 
   /** Returns a pointcloud corresponding to the pixels in the
       IMG which are non-zero. Pixels which have NaN distance information
@@ -247,53 +461,106 @@ class NeedleFinder : CloudImageComm {
 
   /** This is called whenever a new point-cloud is recieved. */
   void process() {
-    cv::Rect roi(100,50,420,350);
-    cv::Mat img(_img_cv, roi);
+    ROS_INFO("Processing ...");
+    if (_should_process) {
+    
+      cv::Rect roi(100,50,420,350);
+      cv::Mat img(_img_cv, roi);
 
-    ander.update(img);
+      cv::Mat img2 = img.clone();
+      ander.update(img2);
 
-    if (ander.is_ready()) {
-      cv::Mat and_img = ander.get();
+      Mat temp;
+      sFilter.filter(img2,temp,false);
+      imshow("sat", temp);
+      waitKey(5);
 
-      cv::Mat hue_mask, sat_mask, color_mask;
-      hFilter.filter(img, hue_mask, true);
-      sFilter.filter(img, sat_mask, true);
-      cv::bitwise_and(hue_mask, sat_mask, color_mask);
+      Vec2i bounds = histograms(temp,true);
+
+      hFilter.set_min(bounds[0]);
+      hFilter.set_max(bounds[1]);
+      ROS_INFO("BOUNDS : %d,%d", bounds[0], bounds[1]);
       
-      Mat circular_mask = Mat::zeros(img.size(), CV_8UC1);
-      pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(color_mask);
-      if (image_cloud->points.size() != 0) {
-	Vec3f center; float radius;
-	get_circle2D_ransac(image_cloud, center, radius);
-	Point pcenter(cvRound(center[0]), cvRound(center[1]));
+      //hFilter.set_min(60);
+      //hFilter.set_max(90);
 
-	if (radius < 150 && radius > 50) {
-	  circle_info info(pcenter, radius);
-	  circle_averager.append_element(info);
-	
-	  if (circle_averager.is_ready()) {
-	    circle_info avg_circle;
-	    avg_circle = (circle_averager.average() + info) / 2;
-	
-	    circle(circular_mask, avg_circle.center, avg_circle.radius*0.9, 255, 40, 8, 0);
-	    imshow("Circle mask", circular_mask + color_mask);
+      Mat hue_filtered;
+      hFilter.filter(temp, hue_filtered);
+      
+      imshow("Hue", hue_filtered);
+      waitKey(5);
+
+
+      /**if (ander.is_ready()) {
+	cv::Mat and_img = ander.get();
+
+	cv::Mat hue_mask, sat_mask, color_mask;
+	hFilter.filter(img, hue_mask, true);
+	sFilter.filter(img, sat_mask, true);
+	cv::bitwise_and(hue_mask, sat_mask, color_mask);
+      
+	Mat circular_mask = Mat::zeros(img.size(), CV_8UC1);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(color_mask);
+	if (image_cloud->points.size() != 0) {
+	  Vec3f center; float radius;
+	  get_circle2D_ransac(image_cloud, center, radius);
+	  Point pcenter(cvRound(center[0]), cvRound(center[1]));
+
+	  if (1 ||radius < 150 && radius > 50) {
+	    circle_info info(pcenter, radius);
+	    circle_averager.append_element(info);
+
+	    /////////////////////////////////////////
+	    Mat ransac = Mat::zeros(img.size(), CV_8UC1);
+	    circle(ransac, info.center,
+		   info.radius, 255, 2, 8, 0);
+	    imshow("RANSAC", color_mask + ransac);
 	    waitKey(5);
+	    ////////////////////////////////////////
 
-	    bitwise_and(color_mask, circular_mask, circular_mask);
-	    cloud_from_image(circular_mask);
+	
+	    if (circle_averager.is_ready()) {
+	      circle_info avg_circle;
+	      avg_circle = (circle_averager.average() + info) / 2;
+	
+	      circle(circular_mask, avg_circle.center,
+		     avg_circle.radius*0.9, 255, 2, 8, 0);
+	      imshow("Circle mask", color_mask + circular_mask);
+	      waitKey(5);
+
+	      bitwise_and(color_mask, circular_mask, circular_mask);
+	      _needle_accumulator.append_element(cloud_from_image(circular_mask));
+	    }
 	  }
 	}
       }
-    }
-    imshow("Original", img);
-    waitKey(5);
+      imshow("Original", img);
+      waitKey(5);
 
+      if (_needle_accumulator.is_ready()) {
+	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_sum = _needle_accumulator.get();
+	if (_debug) {
+	  ROS_INFO ("Found needle cloud: Showing in the 3D viewer.");
+	  ROS_INFO ("The needle cloud has %d points.", cloud_sum->points.size());
+	  _viewer.updatePointCloud(cloud_sum, "cloud");
+	}
+	_should_process = false;
+	}*/
+      imshow("Original", img2);
+      waitKey(5);
+
+      }
   }
 
 public:
   
   void spin_viewer() {
     _viewer.spinOnce(50);
+  }
+
+  void get_needle_transform() {
+    _should_process = true;
+    _needle_accumulator.clear();
   }
 
   NeedleFinder(ros::NodeHandle * nh_ptr,
@@ -303,6 +570,8 @@ public:
 	       uint8_t s_min=50, uint8_t s_max=255) 
     : CloudImageComm(nh_ptr, cloud_topic),
       _viewer(), _debug(debug),
+      _should_process(false),
+      _needle_accumulator(2),
       cannyblur(new CannyBlur),
       ander(cannyblur, 5),
       circle_averager(10),
@@ -324,8 +593,9 @@ int main(int argc, char** argv) {
 			"/camera/depth_registered/points");
 
   NeedleFinder n_finder(&nh, topic, DEBUG);
+  n_finder.get_needle_transform();
 
-  ros::Rate rate(60);
+  ros::Rate rate(120);
   while(ros::ok()) {
     if (DEBUG)
       n_finder.spin_viewer();     
