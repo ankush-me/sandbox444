@@ -15,7 +15,10 @@
   <depend package="opencv2"/>
   <depend package="pcl"/>
   <depend package="sensor_msgs"/>
-<!-- <depend package="cv_bridge"/> -->
+
+  <export>
+    <cpp cflags="-I${prefix}/include" lflags="-L${prefix}/lib"/>
+  </export>
 
 </package>
 

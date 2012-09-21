@@ -17,6 +17,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/features2d/features2d.hpp>
+
 
 typedef ColorPoint PointT;
 
@@ -358,10 +360,10 @@ ColorCloudPtr colorSpaceFilter(const ColorCloudPtr in, uint8_t minx, uint8_t max
   cv::Mat& z = channels[2];
 
   cv::Mat mask = (x > minx) & (x < maxx);
-	if (miny > 0) mask &= (y >= miny);
-	if (maxy < 255) mask &= (y <= maxy);
-	if (minz > 0) mask &= (z >= minz);
-	if (maxz < 255) mask &= (z <= maxz);
+	if (miny > 0) mask = mask & (y >= miny);
+	if (maxy < 255) mask = mask & (y <= maxy);
+	if (minz > 0) mask = mask &  (z >= minz);
+	if (maxz < 255) mask = mask & (z <= maxz);
 
   return maskCloud(in, mask, negative);
 }

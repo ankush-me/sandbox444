@@ -25,7 +25,7 @@
 #include "utils/conversions.h"
 
 #include "filter_cloud_color/Corners.h"
-//#include "filter_cloud_color/TableCorners.h"
+#include "filter_cloud_color/Cut.h"
 
 using namespace Eigen;
 
@@ -39,6 +39,8 @@ extern ColorCloudPtr extractSurgicalUnits (ColorCloudPtr in,
 					   vector<int> *holeInds,
 					   vector<int> *cutInds,
 					   int sutureFlag);
+extern ColorCloudPtr showHole (ColorCloudPtr in, int index);
+extern ColorCloudPtr showCut (ColorCloudPtr in, int index);
 
 /* 
    Structure for storing the values to create the 
@@ -288,25 +290,6 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 }
 
 /*
-  Service call back to return table corners.
-
-bool cornerCallback(filter_cloud_color::Corners::Request &req,
-		    filter_cloud_color::Corners::Response &resp) {
-  if (!boxProp.m_init)
-    return false;
-  else {
-    for (int i=0; i<4; ++i) {
-      Vector3f boxCorner = boxProp.m_corners.row(i).transpose();
-      resp.boxCorners[i].x = boxCorner;
-      resp.boxCorners[i].y = 2;
-      resp.boxCorners[i].z = 3;
-    }
-  }
-  return true;
-}
-*/
-
-/*
   Service call back to return corners.
 */
 bool cornerCallback(filter_cloud_color::Corners::Request &req,
@@ -333,6 +316,25 @@ bool cornerCallback(filter_cloud_color::Corners::Request &req,
   }
   return true;
 }
+
+/*
+  Service call back to return cut specified by index.
+*/
+bool cutCallback(filter_cloud_color::Cut::Request &req,
+		    filter_cloud_color::Cut::Response &resp) {
+
+  if (req.index > cuts.size() || req.index < 1)
+    return false;
+
+  ColorCloudPtr cut_pcl = showCut (cloud_pcl, req.index);
+  sensor_msgs::PointCloud2 cut_msg;
+
+  toROSMsg (*cut_pcl, cut_msg);
+  resp.cut = cut_msg;
+  
+  return true;
+}
+
 
 /*
   Hardcoded test for cuts, holes and suture.
@@ -365,8 +367,10 @@ int main (int argc, char* argv[]) {
   ros::Subscriber pc_sub = 
     nh.subscribe(LocalConfig::pcTopic, 1, &callback);
 
-  ros::ServiceServer service = 
+  ros::ServiceServer cornersService = 
     nh.advertiseService("getCorners", cornerCallback);
+  ros::ServiceServer cutService = 
+    nh.advertiseService("getCut", cutCallback);
 
   if(LocalConfig::debugging) 
     std::cout<<"After defining subscriber and service."<<std::endl;
