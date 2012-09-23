@@ -15,7 +15,7 @@
 
   <export>
     <cpp cflags="-I${prefix}/include"
-	 lflags="-L${prefix}/lib" />
+	 lflags="-L${prefix}/lib -lCloudUtils" />
   </export>
 
 </package>
