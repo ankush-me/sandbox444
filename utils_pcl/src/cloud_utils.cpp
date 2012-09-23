@@ -273,8 +273,6 @@ Eigen::MatrixXf circle3d::extend_circumference(Eigen::Vector3f pt,
     throw;
   }
 
-  //  Eigen::Vector3f center_local    =  _rotation*(_center - _translation);
-  //Eigen::Vector3f reference_local =  _rotation*(reference_pt - _translation);
   Eigen::Vector3f center_to_ref   = _rotation.inverse()*(reference_pt - _center);
 
   float angle = (dir==CCW)? dist/_radius : -dist/_radius;

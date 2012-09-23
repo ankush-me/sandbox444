@@ -27,7 +27,10 @@ uint8_t HueFilter::get_min() { return _h_min;}
     set _h_min > h_max ]                 */
 void HueFilter::filter(cv::Mat &src, cv::Mat &dest, bool isMask) {
   cv::Mat imgHSV;
-  cv::cvtColor(src,imgHSV,CV_RGB2HSV);
+  if (src.channels() == 3)
+    cv::cvtColor(src,imgHSV,CV_BGR2HSV);
+  else
+    src.copyTo(imgHSV);
 
   std::vector<cv::Mat> channels;
   cv::split(imgHSV, channels);

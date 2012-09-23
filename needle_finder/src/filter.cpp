@@ -85,53 +85,6 @@ void imageCB(const sensor_msgs::Image::ConstPtr img) {
   
   cv::imshow( "circles", img1 );
   cv::waitKey(10);
-  
-
-  // change brightness/ contrast
-  //cv::Mat cvt_img;
-  ///in_img.convertTo(cvt_img, -1, 1.01, 0);
-  //cv::imshow("cvt", cvt_img);
-  //cv::waitKey(5);
-
-  /* hue filter the image
-  hueFilter hFilter(80,85);
-  cv::Mat dest;
-  hFilter.filter(in_img, dest, true); */
-
-  /*cv::Mat dest1;
-  dilation(dest, dest1);
-  cv::namedWindow( "dilate", 1 );
-  cv::imshow( "dilate", dest1 );*/
-  
-  /*
-  // do canny edge detection
-  cv::Mat gray_img, canny_img;
-  int thresh = 100;
-  //cv::cvtColor(dest, gray_img,CV_RGB2GRAY);
-  cv::Canny(dest, canny_img, thresh, thresh*2, 3 );
-  cv::GaussianBlur(canny_img, canny_img, cv::Size(9, 9), 3, 3 );
-  cv::imshow("canny-blur", canny_img);
-  cv::waitKey(5);
-
-  std::vector<std::vector<cv::Point> > contours;
-  std::vector<cv::Vec4i> hierarchy;
-  cv::findContours( canny_img, contours, hierarchy,
-		    CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
-
-  // Draw contours
-  cv::Mat drawing = cv::Mat::zeros( canny_img.size(), CV_8UC3 ); 
-  cv::namedWindow( "Contours", CV_WINDOW_AUTOSIZE );
-
-  for( int i = 0; i< contours.size(); i++ ) {
-    cv::Scalar color = cv::Scalar( rng.uniform(0, 255),
-				   rng.uniform(0,255),
-				   rng.uniform(0,255) );
-    drawContours( drawing, contours, i, color, 2, 8, hierarchy, 1, cv::Point() );
-  }
-
-  /// Show in a window
-  cv::imshow( "Contours", drawing );
-  cv::waitKey(10);*/
 }
 
 

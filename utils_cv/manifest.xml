@@ -17,7 +17,7 @@
 
   <export>
     <cpp cflags="-I${prefix}/include"
-	 lflags="-L${prefix}/lib -lHueFilter -lImageAND -lCannyBlur" />
+	 lflags="-L${prefix}/lib -lHueFilter -lSaturationFilter -lImageAND -lCannyBlur" />
   </export>
 
 </package>

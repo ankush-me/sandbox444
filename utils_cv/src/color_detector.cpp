@@ -1,3 +1,7 @@
+/** This is a utility which subscribes to an image topic and
+    prints out the HSV of the pixel clicked at.
+    Author: Ankush Gupta  */
+
 #include <ros/ros.h>
 
 #include <opencv2/core/core.hpp>
@@ -39,7 +43,7 @@ void mouseHandler(int event, int x, int y, int flags, void* data) {
     Mat image, imageHSV;
     image_in->copyTo(image);
  
-    cvtColor(image, imageHSV,CV_RGB2HSV);
+    cvtColor(image, imageHSV,CV_BGR2HSV);
 
     /* read pixel : RGB and HSV*/
     IplImage img = image;
@@ -84,13 +88,19 @@ void imageCB(const sensor_msgs::Image::ConstPtr img) {
 }
 
 
+void help() {
+  ROS_INFO("Press 't' to hold the frame still so that a pixel color can be chosen.");
+}
+
+
 int main(int argc, char** argv) {
 
   ros::init(argc, argv, "color_reader");
-  ros::NodeHandle nh("color_reader");
+  ros::NodeHandle nh("~");
 
   write_frame = true;
   window_name = "color reader";
+
 
   callback_data.image = boost::shared_ptr<Mat>(new Mat(480,640,CV_8UC3));
   callback_data.window_name = window_name;
@@ -102,6 +112,8 @@ int main(int argc, char** argv) {
   nh.param<std::string>("topic", topic, "/wide_stereo/left/image_rect_color");
   ros::Subscriber sub = nh.subscribe(topic, 1, imageCB);
 
+  help();
+ 
   while(ros::ok()) {
     char k = waitKey(10);
     if (k=='t')
