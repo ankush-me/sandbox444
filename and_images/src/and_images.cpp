@@ -84,6 +84,7 @@ cloud3D_from_image(cv::Mat img) {
   return out_cloud;
 }
 
+
 /** Returns an image corresponding to point in the cloud.*/
 cv::Mat image_from_cloud3D(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 			   unsigned int rows, unsigned int cols) {
@@ -293,7 +294,7 @@ RGB HSV_to_RGB(uint8_t h, uint8_t s, uint8_t v) {
 
 
 cv::Vec2i histograms(cv::Mat src,bool debug=false, int range_l = 40, 
-		     int range_u = 100, int num_bins=20 ) {
+		     int range_u = 90, int num_bins=20 ) {
   Mat hsv;
   cvtColor(src, hsv, CV_BGR2HSV);
   vector<Mat> channels;
@@ -461,96 +462,39 @@ class NeedleFinder : CloudImageComm {
 
   /** This is called whenever a new point-cloud is recieved. */
   void process() {
-    ROS_INFO("Processing ...");
+    cv::Rect roi(100,130,350,230);
+    cv::Mat img(_img_cv, roi);
     if (_should_process) {
     
-      cv::Rect roi(100,50,420,350);
-      cv::Mat img(_img_cv, roi);
 
-      cv::Mat img2 = img.clone();
-      ander.update(img2);
-
+      Mat img2 = img.clone();
       Mat temp;
       sFilter.filter(img2,temp,false);
       imshow("sat", temp);
       waitKey(5);
 
       Vec2i bounds = histograms(temp,true);
-
       hFilter.set_min(bounds[0]);
       hFilter.set_max(bounds[1]);
       ROS_INFO("BOUNDS : %d,%d", bounds[0], bounds[1]);
-      
-      //hFilter.set_min(60);
-      //hFilter.set_max(90);
-
       Mat hue_filtered;
       hFilter.filter(temp, hue_filtered);
       
       imshow("Hue", hue_filtered);
       waitKey(5);
 
-
-      /**if (ander.is_ready()) {
-	cv::Mat and_img = ander.get();
-
-	cv::Mat hue_mask, sat_mask, color_mask;
-	hFilter.filter(img, hue_mask, true);
-	sFilter.filter(img, sat_mask, true);
-	cv::bitwise_and(hue_mask, sat_mask, color_mask);
-      
-	Mat circular_mask = Mat::zeros(img.size(), CV_8UC1);
-	pcl::PointCloud<pcl::PointXYZ>::Ptr image_cloud =  cloud3D_from_image(color_mask);
-	if (image_cloud->points.size() != 0) {
-	  Vec3f center; float radius;
-	  get_circle2D_ransac(image_cloud, center, radius);
-	  Point pcenter(cvRound(center[0]), cvRound(center[1]));
-
-	  if (1 ||radius < 150 && radius > 50) {
-	    circle_info info(pcenter, radius);
-	    circle_averager.append_element(info);
-
-	    /////////////////////////////////////////
-	    Mat ransac = Mat::zeros(img.size(), CV_8UC1);
-	    circle(ransac, info.center,
-		   info.radius, 255, 2, 8, 0);
-	    imshow("RANSAC", color_mask + ransac);
-	    waitKey(5);
-	    ////////////////////////////////////////
-
-	
-	    if (circle_averager.is_ready()) {
-	      circle_info avg_circle;
-	      avg_circle = (circle_averager.average() + info) / 2;
-	
-	      circle(circular_mask, avg_circle.center,
-		     avg_circle.radius*0.9, 255, 2, 8, 0);
-	      imshow("Circle mask", color_mask + circular_mask);
-	      waitKey(5);
-
-	      bitwise_and(color_mask, circular_mask, circular_mask);
-	      _needle_accumulator.append_element(cloud_from_image(circular_mask));
-	    }
-	  }
-	}
-      }
-      imshow("Original", img);
+      Mat dilated;
+      cvtColor(hue_filtered, dilated, CV_BGR2GRAY);
+      threshold(dilated, dilated, 5, 255, THRESH_BINARY);
+      dilation(dilated, dilated);
+      imshow("Dilation", dilated);
       waitKey(5);
 
-      if (_needle_accumulator.is_ready()) {
-	pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_sum = _needle_accumulator.get();
-	if (_debug) {
-	  ROS_INFO ("Found needle cloud: Showing in the 3D viewer.");
-	  ROS_INFO ("The needle cloud has %d points.", cloud_sum->points.size());
-	  _viewer.updatePointCloud(cloud_sum, "cloud");
-	}
-	_should_process = false;
-	}*/
-      imshow("Original", img2);
-      waitKey(5);
-
-      }
+    }
+    imshow("Original", img);
+    waitKey(5);
   }
+
 
 public:
   
@@ -590,7 +534,7 @@ int main(int argc, char** argv) {
 
   std::string topic; 
   nh.param<std::string>("cloud_topic", topic, 
-			"/camera/depth_registered/points");
+			"/drop/points");
 
   NeedleFinder n_finder(&nh, topic, DEBUG);
   n_finder.get_needle_transform();

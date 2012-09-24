@@ -401,6 +401,9 @@ void circle3d::get_end_frames(Eigen::MatrixXf &min_frame,
   min_pt    = _rotation*min_pt + _center;
   min_frame = this->get_frame(min_pt, false);
   
+
   max_pt = _rotation*max_pt + _center;
   max_frame = this->get_frame(max_pt,false);
+  max_frame.col(0) *= -1;
+  max_frame.col(1) *= -1;
 } 

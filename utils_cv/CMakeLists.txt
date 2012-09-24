@@ -35,4 +35,5 @@ rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 
 rosbuild_add_executable(color_detector src/color_detector.cpp)
+
 #target_link_libraries(example ${PROJECT_NAME})

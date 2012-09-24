@@ -10,6 +10,14 @@ ImageAND::ImageAND(ImageProcessor::Ptr processor, int n) : _img_proc(processor),
 							   _is_publishing(false),
 							   _and_images()  {}
 
+/** AND n images. */
+ImageAND::ImageAND(int n)
+  : _img_proc(ImageProcessor::Ptr(new IdentityProcessor)),
+    _N(n), _and_img(),
+    _is_publishing(false),
+    _and_images()  {}
+
+
 /** call this to update the ANDed image. */
 void ImageAND::update(cv::Mat &img) {
   cv::Mat dst;

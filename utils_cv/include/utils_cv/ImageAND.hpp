@@ -41,6 +41,9 @@ public:
   /** The image processor you want to apply to every incoming image. */
   ImageAND(ImageProcessor::Ptr processor, int n);
 
+  /** AND n images. */
+  ImageAND(int n);
+
   /** call this to update the ANDed image. */
   void update(cv::Mat &img);
 
