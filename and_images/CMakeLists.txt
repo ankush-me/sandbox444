@@ -21,6 +21,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #uncomment if you have defined services
 #rosbuild_gensrv()
 include_directories("/usr/include/vtk-5.8")
+add_definitions("-DEIGEN_DEFAULT_TO_ROW_MAJOR")
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
@@ -29,3 +30,6 @@ include_directories("/usr/include/vtk-5.8")
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 rosbuild_add_executable(and_test src/and_images.cpp)
 target_link_libraries(and_test vtkCommon vtkFiltering vtkRendering CloudUtils)
+
+rosbuild_add_executable(grabcut_needle src/Grabcut.cpp)
+target_link_libraries(grabcut_needle vtkCommon vtkFiltering vtkRendering CloudUtils)

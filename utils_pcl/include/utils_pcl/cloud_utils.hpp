@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <math.h>
 
 
@@ -69,6 +70,7 @@ private:
   Eigen::Vector3f _translation;
   Eigen::Vector3f _center;
 
+  boost::shared_ptr<pcl::visualization::PCLVisualizer> _viewer;
   float _radius;
 
   /**  Coefficients which define the best fitting plane
@@ -92,7 +94,7 @@ public:
       2. The best fitting 3D circle.
       3. The given coordinate frame and the coordinate frame at 0,0,0
       4. The best fitting plane. */
-  void visualize_data(Eigen::MatrixXf &frame);
+  void visualize_data(Eigen::Matrix3f &rotation, Eigen::Vector3f translation);
 
   /** Saves an orthogonal matrix corresponding to a basis defined
       on the "best fitting" plane to the given point-cloud in the matrix BASIS [input].
@@ -122,12 +124,19 @@ public:
   orientation get_orientation(Eigen::Vector3f &pt1,
 			      Eigen::Vector3f &pt2);
 
-  /** Walks distance DIST on the circumference of the 3D circle,
-      starting at the REFERENCE_PT, in the DIR direction.
-      Returns the TRANSFORM of the destination point in the world frame.*/
-  Eigen::MatrixXf extend_circumference(Eigen::Vector3f reference_pt,
-				       double dist, orientation dir,
-				       bool visualize=false);
+  /** Returns a frame at the PT on the circle.*/
+  Eigen::MatrixXf get_frame(Eigen::Vector3f reference_pt,
+			    bool visualize=false);
+
+  /** Saves the transformation frames at the end points of the cloud.*/
+  void get_end_frames(Eigen::MatrixXf &min_frame,
+		      Eigen::MatrixXf &max_frame);
+
+  /** Adds a frame to the visualizer. */
+  void add_frame(Eigen::MatrixXf & frame,
+			   std::string frame_name);
+
+  void spin_viewer(); 
 };
 
 #endif

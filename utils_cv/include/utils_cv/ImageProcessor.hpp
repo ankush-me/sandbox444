@@ -20,4 +20,10 @@ public:
   virtual void process(cv::Mat &src, cv::Mat &dst) =0;
 };
 
+/** Identity Processor : DOES NOTHING. */
+class IdentityProcessor : public ImageProcessor {
+public:
+  void process (cv::Mat &src, cv::Mat &dst) {dst = src;}
+};
+
 #endif
