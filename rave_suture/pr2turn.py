@@ -51,13 +51,16 @@ def main(env,options):
         T[0:3,3] = [-0.2,-0.2,1]
         target.SetTransform(T)
         
-    #robot = env.GetRobots()[0]
+    robot = env.GetRobots()[0]
+    print robot
 
-    """
     robot.SetActiveManipulator('rightarm')
     ikmodel = databases.inversekinematics.InverseKinematicsModel(robot,iktype=IkParameterizationType.Transform6D)
     if not ikmodel.load():
+        print("Generatin the database")
         ikmodel.autogenerate()
+    else:
+        print("found the ik database for rightarm")
 
     with env:
         robot.SetActiveDOFs(ikmodel.manip.GetArmIndices())
@@ -122,7 +125,7 @@ def main(env,options):
             robot.WaitForController(0)
         if options.testmode:
             break
-    """
+    
     
 from optparse import OptionParser
 from openravepy.misc import OpenRAVEGlobalArguments
@@ -133,12 +136,13 @@ def run(args=None):
 
     :param args: arguments for script to parse, if not specified will use sys.argv
     """
-    #parser = OptionParser(description='Shows how to set a workspace trajectory for the hand and have a robot plan it.', usage='openrave.py --example pr2turnlever [options]')
-    #OpenRAVEGlobalArguments.addOptions(parser)
-    #parser.add_option('--scene',action="store",type='string',dest='scene',default='/home/ankush/sandbox/rave_suture/suture_env',
-    #                  help='scene to load')
-    #(options, leftargs) = parser.parse_args(args=args)
-    #OpenRAVEGlobalArguments.parseAndCreateThreadedUser(options,main,defaultviewer=True)
+
+    parser = OptionParser(description='Shows how to set a workspace trajectory for the hand and have a robot plan it.', usage='openrave.py --example pr2turnlever [options]')
+    OpenRAVEGlobalArguments.addOptions(parser)
+    parser.add_option('--scene',action="store",type='string',dest='scene',default='data/pr2test1.env.xml',#/home/ankush/sandbox/rave_suture/suture_env',
+                      help='scene to load')
+    (options, leftargs) = parser.parse_args(args=args)
+    OpenRAVEGlobalArguments.parseAndCreateThreadedUser(options,main,defaultviewer=True)
 
 
 if __name__ == "__main__":

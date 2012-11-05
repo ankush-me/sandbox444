@@ -1,10 +1,10 @@
 from openravepy import *
-import numpy as np
+from numpy import *
 import time
 
 env = Environment()
 env.SetViewer('qtcoin')
-env.Load('/home/ankush/sandbox/rave_suture/suture_env.zae')
+env.Load('/home/ankush/sandbox/rave_suture/suture_env2.zae')
 
 robot   = env.GetRobots()[0]
 cloth   = env.GetBodies()[1]
