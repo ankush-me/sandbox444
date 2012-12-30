@@ -28,13 +28,21 @@ ColorCloudPtr showHole (ColorCloudPtr in, int index) {
   uint8_t hole_minV = (hole->_V - hole->_Vstd > 0) ? hole->_V - hole->_Vstd : 0;
   uint8_t hole_maxV = (hole->_V + hole->_Vstd < 255) ? hole->_V + hole->_Vstd : 255;
   
-  hueFilter_wrapper 
-    hole_HF (hole_minH, hole_maxH, hole_minS, hole_maxS,
-	     hole_minV, hole_maxV, false);
+  filter_cascader hole_cascader;
+  
+  boost::shared_ptr<hueFilter_wrapper> hole_HF 
+    (new hueFilter_wrapper (hole_minH, hole_maxH, hole_minS, hole_maxS,
+			    hole_minV, hole_maxV, false));
+
+  boost::shared_ptr<removeOutliers_wrapper> 
+    hole_OR (new removeOutliers_wrapper());
+  
+  hole_cascader.appendFilter(hole_HF);
+  hole_cascader.appendFilter(hole_OR);
 
   ColorCloudPtr out (new ColorCloud());
   
-  hole_HF.filter(in, out);
+  hole_cascader.filter(in, out);
   
   return out;
 }
@@ -53,13 +61,21 @@ ColorCloudPtr showCut (ColorCloudPtr in, int index) {
   uint8_t cut_minV = (cut->_V - cut->_Vstd > 0) ? cut->_V - cut->_Vstd : 0;
   uint8_t cut_maxV = (cut->_V + cut->_Vstd < 255) ? cut->_V + cut->_Vstd : 255;
   
-  hueFilter_wrapper 
-    cut_HF (cut_minH, cut_maxH, cut_minS, cut_maxS,
-	     cut_minV, cut_maxV, false);
+  filter_cascader cut_cascader;
+
+  boost::shared_ptr<hueFilter_wrapper> cut_HF 
+    (new hueFilter_wrapper (cut_minH, cut_maxH, cut_minS, cut_maxS,
+			    cut_minV, cut_maxV, false));
+  
+  boost::shared_ptr<removeOutliers_wrapper> 
+    cut_OR (new removeOutliers_wrapper());
+
+  cut_cascader.appendFilter(cut_HF);
+  cut_cascader.appendFilter(cut_OR);
 
   ColorCloudPtr out (new ColorCloud());
   
-  cut_HF.filter(in, out);
+  cut_cascader.filter(in, out);
   
   return out;
 }
@@ -77,13 +93,21 @@ ColorCloudPtr showSuture (ColorCloudPtr in) {
   uint8_t suture_minV = (suture->_V - suture->_Vstd > 0) ? suture->_V - suture->_Vstd : 0;
   uint8_t suture_maxV = (suture->_V + suture->_Vstd < 255) ? suture->_V + suture->_Vstd : 255;
   
-  hueFilter_wrapper 
-    suture_HF (suture_minH, suture_maxH, suture_minS, suture_maxS,
-	     suture_minV, suture_maxV, false);
+  filter_cascader suture_cascader;
+
+  boost::shared_ptr<hueFilter_wrapper> suture_HF
+    (new hueFilter_wrapper (suture_minH, suture_maxH, suture_minS, suture_maxS,
+			    suture_minV, suture_maxV, false));
+
+  boost::shared_ptr<removeOutliers_wrapper> 
+    suture_OR (new removeOutliers_wrapper());
+  
+  suture_cascader.appendFilter(suture_HF);
+  suture_cascader.appendFilter(suture_OR);
 
   ColorCloudPtr out (new ColorCloud());
   
-  suture_HF.filter(in, out);
+  suture_cascader.filter(in, out);
   
   return out;
 }

@@ -1,0 +1,22 @@
+<package>
+  <description brief="pr2_surgical_pickup_flap">
+
+     pr2_surgical_pickup_flap
+
+  </description>
+  <author>Sibi Venkatesan</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/pr2_surgical_pickup_flap</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="tf"/>
+  <depend package="cv_bridge"/>
+  <depend package="opencv2"/>
+  <depend package="pcl"/>
+  <depend package="sensor_msgs"/>
+  <depend package="filter_cloud_color"/>
+
+</package>
+
+

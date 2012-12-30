@@ -272,6 +272,36 @@ public:
   }
 };
 
+/** Filters the largest cluster in point cloud. 
+    Clusters are set of points within a distance of tol from
+    another cluster point.
+**/
+/** To be done:
+   
+class removeOutliers_wrapper : public filter_wrapper<ColorPoint> {
+  float _std_threshold;
+  int _num_neighbors;
+
+public:
+
+ removeOutliers_wrapper(): _std_threshold(1),
+    _num_neighbors(15) { }
+ removeOutliers_wrapper(float thresh, int k) : _std_threshold(thresh),
+    _num_neighbors(k) { }
+
+  inline void setThreshold (float thresh) {_std_threshold = thresh;}
+  inline float getThreshold () {return _std_threshold;}
+
+  inline void setNumNeighbors (int k) {_num_neighbors = k;}
+  inline int getNumNeighbors () {return _num_neighbors;}
+
+  void filter (const ColorCloudPtr in, ColorCloudPtr out) {
+    ColorCloudPtr filtered_pc =  removeOutliers(in, _std_threshold,
+						_num_neighbors);
+    *out = *filtered_pc;
+  }
+};
+**/
 
 /** Retains points only within an oriented box. Must specify origin
     and opposite corners of box. */

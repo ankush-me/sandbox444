@@ -56,10 +56,12 @@ struct {
 } boxProp;
 
 /* 
-   Variables to store current pointCloud and whether message is new.
+   Variables to store the current pointCloud, the filtered
+   pointCloud and whether message is new.
    Modified in callback/main.
 */
 static ColorCloudPtr cloud_pcl (new ColorCloud);
+static ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
 bool pending = false;
 
 /*
@@ -154,6 +156,11 @@ void initBoxFilter (ColorCloudPtr cloud) {
   Vector3f zax = xax.cross(yax);
 
   Matrix3f m_axes;
+
+  
+  float zsgn = (zax(2) < 0) ? 1 : -1;
+  xax *= zsgn;
+  zax *= zsgn; // so z axis points up
 
   m_axes.col(0) = xax;
   m_axes.col(1) = yax;
@@ -326,7 +333,7 @@ bool cutCallback(filter_cloud_color::Cut::Request &req,
   if (req.index > cuts.size() || req.index < 1)
     return false;
 
-  ColorCloudPtr cut_pcl = showCut (cloud_pcl, req.index);
+  ColorCloudPtr cut_pcl = showCut (cloud_pcl_filtered, req.index);
   sensor_msgs::PointCloud2 cut_msg;
 
   toROSMsg (*cut_pcl, cut_msg);
@@ -341,18 +348,18 @@ bool cutCallback(filter_cloud_color::Cut::Request &req,
 */
 void testHolesCuts () {
   Cut::Ptr cut1 (new Cut());
-  cut1->_H = 176; cut1->_S = 213; cut1->_V = 185;
-  cut1->_Hstd = 2; cut1->_Sstd = 89; cut1->_Vstd = 24;
+  cut1->_H = 173; cut1->_S = 213; cut1->_V = 187;
+  cut1->_Hstd = 5; cut1->_Sstd = 44; cut1->_Vstd = 13;
 
   Cut::Ptr cut2 (new Cut());
-  cut2->_H = 113; cut2->_S = 150; cut2->_V = 176;
-  cut2->_Hstd = 4; cut2->_Sstd = 40; cut2->_Vstd = 13;
+  cut2->_H = 114; cut2->_S = 150; cut2->_V = 202;
+  cut2->_Hstd = 4; cut2->_Sstd = 36; cut2->_Vstd = 4;
 
   cuts.push_back(cut1);
   cuts.push_back(cut2);
 
-  suture->_H = 105; suture->_S = 150; suture->_V = 150;
-  suture->_Hstd = 5; suture->_Sstd = 50; suture->_Vstd = 50; 
+  suture->_H = 96; suture->_S = 63; suture->_V = 198;
+  suture->_Hstd = 7; suture->_Sstd = 41; suture->_Vstd = 44; 
 }
 
 
@@ -409,8 +416,6 @@ int main (int argc, char* argv[]) {
   
   
   while (ros::ok()) {
-    ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
-
     cascader.filter(cloud_pcl, cloud_pcl_filtered);
     
     ColorCloudPtr surgicalUnits_cloud (new ColorCloud);
