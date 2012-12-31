@@ -1,0 +1,16 @@
+----
+#Hole HSV and std dev
+uint8[] holeH
+uint8[] holeS
+uint8[] holeV
+uint8[] holeH_std
+uint8[] holeS_std
+uint8[] holeV_std
+
+#Cut HSV and std dev
+uint8[] cutH
+uint8[] cutS
+uint8[] cutV
+uint8[] cutH_std
+uint8[] cutS_std
+uint8[] cutV_std

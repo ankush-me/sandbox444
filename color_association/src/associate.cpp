@@ -6,6 +6,7 @@
 #include <surgical_msgs/InitInfo.h>
 #include <surgical_msgs/Hole.h>
 #include <surgical_msgs/Cut.h>
+#include <surgical_msgs/HoleCutInfo.h>
 #include <geometry_msgs/Point.h>
 
 #include <vector>
@@ -27,6 +28,8 @@ typedef pcl::IntegralImageNormalEstimation<pcl::PointXYZRGB, pcl::Normal> Normal
 typedef boost::shared_ptr<NormalEstimation> NormalEstimationPtr;
 
 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_pcl;
+
+
 
 /** Structure to store HSV values. */
 struct HSV {
@@ -399,6 +402,38 @@ get_cuts_normal(const std::vector<surgical_msgs::Cut> cuts,
   return normals;
 }
 
+//Global variables to store hole/cut info.
+//Reset every time callback is called.
+std::vector<HSVInfo::Ptr> hole_hsv_info;
+std::vector<HSVInfo::Ptr> cut_hsv_info;
+
+/** Service callback to provide info of holes and cuts. */
+bool infoCallback (surgical_msgs::HoleCutInfo::Request &req,
+					surgical_msgs::HoleCutInfo::Response &resp) {
+
+	if (!hole_hsv_info.size() && !cut_hsv_info.size())
+		return false;
+
+	for(int i=0; i < hole_hsv_info.size(); i+=1) {
+		resp.holeH.push_back (hole_hsv_info[i]->h);
+		resp.holeS.push_back (hole_hsv_info[i]->s);
+		resp.holeV.push_back (hole_hsv_info[i]->v);
+		resp.holeH_std.push_back (hole_hsv_info[i]->h_std);
+		resp.holeS_std.push_back (hole_hsv_info[i]->s_std);
+		resp.holeV_std.push_back (hole_hsv_info[i]->v_std);
+	}
+
+	for(int i=0; i < cut_hsv_info.size(); i+=1) {
+		resp.cutH.push_back (cut_hsv_info[i]->h);
+		resp.cutS.push_back (cut_hsv_info[i]->s);
+		resp.cutV.push_back (cut_hsv_info[i]->v);
+		resp.cutH_std.push_back (cut_hsv_info[i]->h_std);
+		resp.cutS_std.push_back (cut_hsv_info[i]->s_std);
+		resp.cutV_std.push_back (cut_hsv_info[i]->v_std);
+	}
+
+	return true;
+}
 
 /** The callback to handle new surgical::initInfo messages.
 
@@ -406,6 +441,7 @@ get_cuts_normal(const std::vector<surgical_msgs::Cut> cuts,
     2. Finds the local surface normal directions at the holes and the cuts. */
 void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
   ROS_INFO("Initinfo recieved.");
+
   cloud_pcl = pcl::PointCloud<pcl::PointXYZRGB>::Ptr(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::fromROSMsg(info->cloud, *cloud_pcl);
 
@@ -421,11 +457,30 @@ void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
   normal_estimator->setNormalSmoothingSize(10.0f);
   normal_estimator->setInputCloud(cloud_pcl);
 
+  // Data pointed to automatically garbage-collected.
+  cut_hsv_info.clear();
+  hole_hsv_info.clear();
+
   std::vector<surgical_msgs::Hole> holes = info->holes;
-  std::vector<HSVInfo::Ptr> hole_hsv_info = get_hole_HSV(org_search, holes);
+  hole_hsv_info = get_hole_HSV(org_search, holes);
 
   std::vector<surgical_msgs::Cut> cuts = info->cuts;
-  std::vector<HSVInfo::Ptr> cut_hsv_info = get_cut_HSV(org_search, cuts);
+  cut_hsv_info = get_cut_HSV(org_search, cuts);
+
+  ROS_INFO("Hole info:");
+
+  for(int i=0; i < hole_hsv_info.size(); i+=1) {
+      std::stringstream ss;
+      ss<<"HSV : ("<<(int)hole_hsv_info[i]->h<<","
+        <<(int)hole_hsv_info[i]->s<<","
+        <<(int)hole_hsv_info[i]->v<<") | std: ("
+        <<(int)hole_hsv_info[i]->h_std<<","
+        <<(int)hole_hsv_info[i]->s_std<<","
+        <<(int)hole_hsv_info[i]->v_std<<")\n";
+      ROS_INFO(ss.str().c_str());
+    }
+
+  ROS_INFO("Cut info:");
 
   for(int i=0; i < cut_hsv_info.size(); i+=1) {
     std::stringstream ss;
@@ -434,7 +489,7 @@ void initInfoCB(const surgical_msgs::InitInfo::ConstPtr& info) {
       <<(int)cut_hsv_info[i]->v<<") | std: ("
       <<(int)cut_hsv_info[i]->h_std<<","
       <<(int)cut_hsv_info[i]->s_std<<","
-      <<(int)cut_hsv_info[i]->v_std<<")\n";
+      <<(int)cut_hsv_info[i]->v_std<<")";
     ROS_INFO(ss.str().c_str());
   }
 }
@@ -448,6 +503,9 @@ int main(int argc, char** argv) {
 
   ros::Subscriber  sub;
   sub = nh.subscribe(init_info_topic, 1, initInfoCB);
+
+  ros::ServiceServer infoService;
+  infoService = nh.advertiseService("getGUIData", infoCallback);
 
   ros::spin();
 }

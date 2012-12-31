@@ -1,9 +1,5 @@
 /* TODO:
-   Figure out how to move information between nodes.
-   	   Is this done? I think it is.
-   Finish make_unit.hpp to return a proper unit.
-   Maybe take into account where holes/cuts were last iteration.
-     (Basically use more info than just color)
+   cout -> ROSLOG_DEBUG
    Maybe extract the sponge by cascading orientedBoxFilters.
    Modularize code.
    Remove most of bullet.
@@ -16,19 +12,30 @@
 
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/search/pcl_search.h>
+#include <pcl/features/integral_image_normal.h>
+#include <pcl/features/normal_3d.h>
 
 #include "filter_wrapper.h"
 #include "filter_config.h"
 #include "get_table.h"
 #include "make_unit.hpp"
 #include "extract_inds.hpp"
+#include "line_finding.h"
 
 #include "utils/conversions.h"
 
 #include "filter_cloud_color/Corners.h"
 #include "filter_cloud_color/Cut.h"
+#include "filter_cloud_color/PointDir.h"
+
+#include <surgical_msgs/HoleCutInfo.h>
 
 using namespace Eigen;
+
+/** Create a shared pointer type for pcl::Normal.*/
+typedef boost::shared_ptr<pcl::Normal> NormalPtr;
+typedef pcl::IntegralImageNormalEstimation<pcl::PointXYZRGB, pcl::Normal> NormalEstimation;
+typedef boost::shared_ptr<NormalEstimation> NormalEstimationPtr;
 
 /*
   Variables and functions declared in surgical_extraction.cpp.
@@ -71,14 +78,16 @@ bool pending = false;
   and column indices for the points found.
   This is basically to find the corners of the table in the
   organized point_cloud.
+  Also for finding the image indices for the holes.
   Returns true if all points are found within distance minTol to 
   maxTol and stores it them nearestPoint.
   Returns false if any point is not found.
 */
-bool findNearestPoints (const vector<Vector3f> *inPoints, 
-		       vector<Vector3f> *nearestPoints,
-		       vector<Vector2f> *imageInds,
-		       int minTol=0.001, int maxTol=1) {  
+bool findNearestPoints (ColorCloudPtr cloud,
+						const vector<Vector3f> *inPoints,
+		       	   	    vector<Vector3f> *nearestPoints,
+		       	   	    vector<Vector2f> *imageInds,
+		       	   	    int minTol=0.001, int maxTol=1) {
 
   
   pcl::search::KdTree<ColorPoint>::Ptr 
@@ -86,7 +95,7 @@ bool findNearestPoints (const vector<Vector3f> *inPoints,
   
   ColorPoint searchPoint;
 
-  tree->setInputCloud(cloud_pcl);
+  tree->setInputCloud(cloud);
   std::vector<int> indices;
   std::vector<float> dists;
 
@@ -146,6 +155,103 @@ bool findNearestPoints (const vector<Vector3f> *inPoints,
 }
 
 /*
+  Function to find the indices of the k closest points to point
+  given from the stored point cloud, cloud_pcl.
+*/
+void findkClosestPoints ( Vector3f inPoint, int k,
+						  vector< int > &indices,
+		       	   	   	  int minTol=0.001, int maxTol=1) {
+
+
+	pcl::search::KdTree<ColorPoint>::Ptr
+    	tree (new pcl::search::KdTree<ColorPoint>);
+
+	ColorPoint searchPoint;
+
+	tree->setInputCloud(cloud_pcl);
+	std::vector<float> dists;
+
+	indices.clear();
+
+	float tol = minTol;
+	float tolStepSize = 0.001;
+
+	searchPoint.x = inPoint[0];
+	searchPoint.y = inPoint[1];
+	searchPoint.z = inPoint[2];
+
+	while (tol <= maxTol) {
+		int ret = tree->radiusSearch(searchPoint, tol, indices, dists, k);
+
+		if( ret == -1) {
+			PCL_ERROR("findNearestPoint got error code -1 from radiusSearch\n");
+			exit(0);
+		}
+		if (!ret || (ret < k && tol <= maxTol - tolStepSize)) {
+			tol += tolStepSize;
+			continue;
+		}
+
+		if (LocalConfig::debugging) {
+			std::cout<<"findkClosestPoints: Found something."<<std::endl;
+		}
+		break;
+    }
+}
+
+/* Finds the average point of the points in a pointCloud. */
+Vector3f findAveragePoint (ColorCloudPtr cloud) {
+	Vector3f avgPoint(0,0,0);
+	int cloudSize = cloud->size();
+
+	for (int i = 0; i < cloudSize; ++i)
+		avgPoint = Vector3f (cloud->at(i).x, cloud->at(i).y, cloud->at(i).z);
+	avgPoint = avgPoint/cloudSize;
+
+	return avgPoint;
+}
+
+/** Finds the surface normal around a point.
+    X_IDX, Y_IDX : The x and y indices of the point at which
+                   the normal is to be found in the organized point-cloud.
+    NORMAL_ESTIMATOR : A normal_estimator structure appropriately
+                       initialized for finding normals.
+    [see:
+    http://www.pointclouds.org/documentation/tutorials/normal_estimation_using_integral_images.php ]*/
+NormalPtr findPointNormal(  const int x_idx, const int y_idx,
+							NormalEstimationPtr normal_estimator) {
+
+  std::cout<<"  Number 1."<<std::endl;
+  int pt_idx = x_idx*normal_estimator->getInputCloud()->width + y_idx;
+  pcl::Normal normal;
+  std::cout<<"  Number 2. x:"<<x_idx<<" y:"<<y_idx<<" p:"<<pt_idx<<std::endl;
+  std::cout<<"  Organized? "<<normal_estimator->getInputCloud()->isOrganized()<<std::endl;
+  normal_estimator->computePointNormal(x_idx, y_idx, pt_idx, normal);
+  std::cout<<"  Number 3."<<std::endl;
+  NormalPtr ret_normal(new pcl::Normal);
+  *ret_normal  = normal;
+  std::cout<<"  Number 4."<<std::endl;
+  return ret_normal;
+}
+
+NormalPtr findPointNormal2(const int x_idx, const int y_idx,
+							NormalEstimationPtr normal_estimator) {
+
+  std::cout<<"  Number 1."<<std::endl;
+  int pt_idx = x_idx*normal_estimator->getInputCloud()->width + y_idx;
+  pcl::Normal normal;
+  std::cout<<"  Number 2. x:"<<x_idx<<" y:"<<y_idx<<" p:"<<pt_idx<<std::endl;
+  std::cout<<"  Organized? "<<normal_estimator->getInputCloud()->isOrganized()<<std::endl;
+  normal_estimator->computePointNormal(x_idx, y_idx, pt_idx, normal);
+  std::cout<<"  Number 3."<<std::endl;
+  NormalPtr ret_normal(new pcl::Normal);
+  *ret_normal  = normal;
+  std::cout<<"  Number 4."<<std::endl;
+  return ret_normal;
+}
+
+
+/*
   Initializing values for the box filter.
   Taken from preprocessor node's initTable.
 */
@@ -190,8 +296,12 @@ void initBoxFilter (ColorCloudPtr cloud) {
   for (int i=0; i<4; ++i)
     corners.push_back(boxProp.m_corners.row(i).transpose());
 
-  boxProp.m_foundPC = findNearestPoints(&corners, &boxProp.m_pcPoints,
-					&boxProp.m_imageInds);
+  ColorCloudPtr newCloud (new ColorCloud);
+  *newCloud = *cloud_pcl;
+
+  boxProp.m_foundPC = findNearestPoints(  newCloud, &corners,
+		  	  	  	  	  	  	  	  	  &boxProp.m_pcPoints,
+										  &boxProp.m_imageInds );
 
   if (LocalConfig::debugging) {
     for (int i=0; i<4; ++i)
@@ -305,7 +415,7 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 bool cornerCallback(filter_cloud_color::Corners::Request &req,
 		    filter_cloud_color::Corners::Response &resp) {
   if (!boxProp.m_init || !boxProp.m_foundPC)
-    return true;
+    return false;
   else {
     for (int i=0; i<4; ++i) {
       Vector3f boxCorner = boxProp.m_corners.row(i).transpose();
@@ -329,6 +439,7 @@ bool cornerCallback(filter_cloud_color::Corners::Request &req,
 
 /*
   Service call back to return cut specified by index.
+  Useful but not being used.
 */
 bool cutCallback(filter_cloud_color::Cut::Request &req,
 		    filter_cloud_color::Cut::Response &resp) {
@@ -341,10 +452,83 @@ bool cutCallback(filter_cloud_color::Cut::Request &req,
 
   toROSMsg (*cut_pcl, cut_msg);
   resp.cut = cut_msg;
-  
+
   return true;
 }
 
+/*
+  Service callback to return approximate line through cut by index.
+*/
+bool cutLineCallback(filter_cloud_color::PointDir::Request &req,
+		    		 filter_cloud_color::PointDir::Response &resp) {
+
+  if (req.index > cuts.size() || req.index < 1 || !cloud_pcl_filtered)
+    return false;
+
+  ColorCloudPtr cut_pcl = showCut (cloud_pcl_filtered, req.index);
+
+  std::vector<float> lineCoeffs = getLineCoeffsRansac(cut_pcl);
+
+  resp.point.x = lineCoeffs[0];
+  resp.point.y = lineCoeffs[1];
+  resp.point.z = lineCoeffs[2];
+  resp.dir.x   = lineCoeffs[3];
+  resp.dir.y   = lineCoeffs[4];
+  resp.dir.z   = lineCoeffs[5];
+
+  return true;
+}
+
+/*
+  Service callback to return the midpoint of and surface normal at
+  the hole given by the index.
+*/
+bool holeNormalCallback(filter_cloud_color::PointDir::Request &req,
+		    		 	filter_cloud_color::PointDir::Response &resp) {
+
+  if (req.index > holes.size() || req.index < 1 || !cloud_pcl_filtered)
+    return false;
+
+  ColorCloudPtr saved_pcl (new ColorCloud());
+  *saved_pcl = *cloud_pcl;
+
+  ColorCloudPtr hole_pcl = showHole (cloud_pcl_filtered, req.index);
+
+  std::cout<<"Number 1."<<std::endl;
+  Vector3f avgPoint = findAveragePoint (hole_pcl);
+
+  vector<Vector3f> inPoints;
+  inPoints.push_back(avgPoint);
+  vector<Vector3f> nearestPoints;
+  vector<Vector2f> imageInds;
+
+  std::cout<<"Number 2."<<std::endl;
+  *saved_pcl = *cloud_pcl;
+  bool found = findNearestPoints (saved_pcl, &inPoints, &nearestPoints, &imageInds);
+  std::cout<<"Number 3."<<std::endl;
+  if (!found) return found;
+
+  // Initialize normal-estimation structure
+  NormalEstimationPtr normalEstimator(new NormalEstimation);
+  normalEstimator->setNormalEstimationMethod (normalEstimator->AVERAGE_3D_GRADIENT);
+  normalEstimator->setMaxDepthChangeFactor(0.02f);
+  normalEstimator->setNormalSmoothingSize(0.5f);
+  normalEstimator->setInputCloud(saved_pcl);
+
+  std::cout<<"Number 4."<<std::endl;
+  NormalPtr holeNormal = findPointNormal((int) imageInds[0][0], (int) imageInds[0][1], normalEstimator);
+  std::cout<<"Number 5."<<std::endl;
+
+  resp.point.x = avgPoint[0];
+  resp.point.y = avgPoint[1];
+  resp.point.z = avgPoint[2];
+  resp.dir.x   = holeNormal->normal_x;
+  resp.dir.y   = holeNormal->normal_y;
+  resp.dir.z   = holeNormal->normal_z;
+  std::cout<<"Number 6."<<std::endl;
+
+  return true;
+}
 
 /*
   Hardcoded test for cuts, holes and needle.
@@ -352,7 +536,7 @@ bool cutCallback(filter_cloud_color::Cut::Request &req,
 void testHolesCuts () {
   Cut::Ptr cut1 (new Cut());
   cut1->_H = 173; cut1->_S = 213; cut1->_V = 187;
-  cut1->_Hstd = 10; cut1->_Sstd = 44; cut1->_Vstd = 50;
+  cut1->_Hstd = 6; cut1->_Sstd = 44; cut1->_Vstd = 50;
 
   Cut::Ptr cut2 (new Cut());
   cut2->_H = 114; cut2->_S = 150; cut2->_V = 202;
@@ -361,8 +545,14 @@ void testHolesCuts () {
   cuts.push_back(cut1);
   cuts.push_back(cut2);
 
-  needle->_H = 96; needle->_S = 63; needle->_V = 198;
-  needle->_Hstd = 7; needle->_Sstd = 41; needle->_Vstd = 44;
+  Hole::Ptr hole1 (new Hole());
+  hole1->_H = 60; hole1->_S=150; hole1->_V = 150;
+  hole1->_Hstd = 15; hole1->_Sstd=50; hole1->_Vstd = 100;
+
+  holes.push_back(hole1);
+
+  needle->_H = 70; needle->_S = 63; needle->_V = 198;
+  needle->_Hstd = 10; needle->_Sstd = 41; needle->_Vstd = 44;
 }
 
 /*
@@ -370,8 +560,46 @@ void testHolesCuts () {
  * Block code till data is available. Assume data will be available at some point.
  * TODO: Specify ordering of cuts/holes so that their indices mean something.
  */
-void getGUIData () {
-	return;
+void getGUIData (ros::ServiceClient * infoClient) {
+
+	while (true) {
+		surgical_msgs::HoleCutInfo hcInfo;
+		if (infoClient->call(hcInfo)) {
+			for (int i = 0; i < hcInfo.response.holeH.size(); ++i) {
+				Hole::Ptr hole =
+				  make_hole ( hcInfo.response.holeH[i],
+							  hcInfo.response.holeS[i],
+							  hcInfo.response.holeV[i],
+							  hcInfo.response.holeH_std[i],
+							  hcInfo.response.holeS_std[i],
+							  hcInfo.response.holeV_std[i]);
+				
+				holes.push_back(hole);
+			}
+			
+			for (int i = 0; i < hcInfo.response.cutH.size(); ++i) {
+				Cut::Ptr cut =
+					make_cut ( hcInfo.response.cutH[i],
+							   hcInfo.response.cutS[i],
+							   hcInfo.response.cutV[i],
+							   hcInfo.response.cutH_std[i],
+							   hcInfo.response.cutS_std[i],
+							   hcInfo.response.cutV_std[i]);
+				
+				cuts.push_back(cut);
+			}
+			break;
+		}
+		else {
+		    ros::spinOnce();
+		    sleep(0.3);
+		    if (!ros::ok()) 
+		      throw std::runtime_error
+		      	  ("caught signal while waiting for hole/cut data");
+		}
+	}
+	if(LocalConfig::debugging) 
+		std::cout<<"Holes size: "<<holes.size()<<" and Cuts size: "<<cuts.size()<<std::endl;
 }
 
 
@@ -388,15 +616,24 @@ int main (int argc, char* argv[]) {
 
   ros::ServiceServer cornersService = 
     nh.advertiseService("getCorners", cornerCallback);
-  ros::ServiceServer cutService = 
-    nh.advertiseService("getCut", cutCallback);
+
+  //Useful but not used.
+  //ros::ServiceServer cutService =
+  // nh.advertiseService("getCut", cutCallback);
+  ros::ServiceServer cutLineService =
+     nh.advertiseService("getCutLine", cutLineCallback);
+  ros::ServiceServer holeNormalService =
+     nh.advertiseService("getHoleNormal", holeNormalCallback);
+
+  ros::ServiceClient infoClient =
+    nh.serviceClient<surgical_msgs::HoleCutInfo>("getGUIData");
 
   if(LocalConfig::debugging) 
-    std::cout<<"After defining subscriber and service."<<std::endl;
+    std::cout<<"After defining subscriber, services and clients."<<std::endl;
 
   //Test:
   testHolesCuts();
-  //getGUIData();
+  //getGUIData(&infoClient);
 
   if (LocalConfig::debugging) {
     std::cout<<"Size of holes: "<<holes.size()<<std::endl;

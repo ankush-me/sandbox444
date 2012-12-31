@@ -72,9 +72,10 @@ target_link_libraries(find_color_points ${PCL_LIBRARIES}
 
 rosbuild_add_executable(color_associater src/color_point_associater.cpp
                                          src/filter_config.cpp
-					 src/surgical_extraction.cpp)
-
+					 					 src/surgical_extraction.cpp)
 target_link_libraries(color_associater ${PCL_LIBRARIES}
-                                            cloudOps utils
-                                            boxFilter
-                                            ${Boost_LIBRARIES})
+                                       cloudOps 
+                                       utils
+                                       boxFilter
+                                       lineFinder
+                                       ${Boost_LIBRARIES})

@@ -8,3 +8,6 @@ target_link_libraries(cloudOps ${PCL_LIBRARIES} ${OpenCV_LIBS}
 add_library(boxFilter geom.cpp plane_finding.cpp get_table.cpp)
 target_link_libraries(boxFilter ${PCL_LIBRARIES}
                                ${OpenCV_LIBS} ${BULLET_LIBS} utils)
+                               
+add_library(lineFinder line_finding.cpp)
+target_link_libraries(lineFinder ${PCL_LIBRARIES})
