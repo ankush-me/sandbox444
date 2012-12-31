@@ -46,7 +46,6 @@ void SurgicalGUI::on_selectFrame_clicked() {
 void SurgicalGUI::on_sendButton_clicked() {
   std::list<Hole::Ptr> hole_lst = holes.get_std_list();
   std::list<Cut::Ptr>  cut_lst  = cuts.get_std_list();
- 
   _ros_comm->publish(hole_lst, cut_lst, _image_comm->get_cloud_ptr_ros());
 }
 

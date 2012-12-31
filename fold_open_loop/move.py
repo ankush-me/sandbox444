@@ -96,8 +96,8 @@ if __name__=='__main__':
 
 
     # Move the Head
-    p = numpy.array([1,0,0.5])
-#    bot.head.look_at(p, 'base_footprint', 'narrow_stereo_link')
+    #p = numpy.array([1,0,0.5])
+    #bot.head.look_at(p, 'base_footprint', 'narrow_stereo_link')
 
     if VERBOSE:
         show_arms_info(bot)

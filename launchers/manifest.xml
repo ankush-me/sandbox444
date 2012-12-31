@@ -1,0 +1,16 @@
+<package>
+  <description brief="launchers">
+
+     launchers
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/launchers</url>
+  <depend package="utils_pcl"/>
+  <depend package="utils_cv"/>
+
+</package>
+
+

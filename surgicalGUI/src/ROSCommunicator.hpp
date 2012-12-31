@@ -42,7 +42,7 @@ public:
   /** Publishes the info. */
   void publish(std::list<Hole::Ptr> &holes,
 	       std::list<Cut::Ptr> &cuts,
-	         sensor_msgs::PointCloud2::ConstPtr cloud_ptr) {
+	       sensor_msgs::PointCloud2::Ptr cloud_ptr) {
     surgical_msgs::InitInfo info;
     info.cloud = *cloud_ptr;
 

@@ -1,0 +1,18 @@
+<package>
+  <description brief="color_association">
+
+     color_association
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/color_association</url>
+  <depend package="roscpp"/>
+  <depend package="surgical_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+</package>
+
+

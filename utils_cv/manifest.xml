@@ -1,0 +1,26 @@
+<package>
+  <description brief="utils_cv">
+
+     utils_cv
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/utils_cv</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="opencv2"/>
+  <depend package="image_transport"/>
+  <depend package="sensor_msgs"/>
+  <depend package="cv_bridge"/>
+  <depend package="utils_pcl"/>
+
+  <export>
+    <cpp cflags="-I${prefix}/include"
+	 lflags="-L${prefix}/lib -lHueFilter -lSaturationFilter -lImageAND -lCannyBlur" />
+  </export>
+
+</package>
+
+

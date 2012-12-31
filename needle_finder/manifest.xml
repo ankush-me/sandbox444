@@ -1,0 +1,22 @@
+<package>
+  <description brief="needle_finder">
+
+     needle_finder
+
+  </description>
+  <author>Ankush Gupta</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/needle_finder</url>
+  <depend package="roscpp"/>
+  <depend package="pcl"/>
+  <depend package="opencv2"/>
+  <depend package="cv_bridge"/>
+  <depend package="surgical_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="utils_cv"/>
+
+</package>
+
+
