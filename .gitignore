@@ -3,15 +3,24 @@ build/*
 *~*
 .metadata/*
 */build/*
+
 *test/*
 
 filter_color_cloud2/*
 
 *eclipse*
-*/bin/*
+
 */src/*/msg/*
 */src/*/srv/*
+
+bin/*
+*/bin/*
+
+msg_gen/*
 */msg_gen/*
+
+srv_gen/*
 */srv_gen/*
 
-*filter_cloud_color/lib/*
+lib/*
+*/lib/*
