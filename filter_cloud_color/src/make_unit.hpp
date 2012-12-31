@@ -2,7 +2,7 @@
 #include "surgical_units.hpp"
 
 /*
-  Creats and returns a shared_ptr to a hole.
+  Creates and returns a shared_ptr to a hole.
 */
 Hole::Ptr make_hole (){ 
   //HolePtr hole (new Hole(xyz, H, S, V, Hstd, Sstd, Vstd, x_ID, y_ID));
@@ -12,7 +12,7 @@ Hole::Ptr make_hole (){
 }
 
 /*
-  Creats and returns a shared_ptr to a cut.
+  Creates and returns a shared_ptr to a cut.
 */
 Cut::Ptr make_cut (){  
   //CutPtr cut (new Cut(xyzs, H, S, V, Hstd, Sstd, Vstd, x_IDs, y_IDs));
@@ -22,11 +22,11 @@ Cut::Ptr make_cut (){
 }
 
 /*
-  Creats and returns a shared_ptr to a suture.
+  Creates and returns a shared_ptr to a suturing needle.
 */
-Suture::Ptr make_suture (){
-  //SuturePtr suture (new Suture(H, S, V, Hstd, Sstd, Vstd));
+Needle::Ptr make_needle (){
+  //NeedlePtr needle (new Needle(H, S, V, Hstd, Sstd, Vstd));
   //temp:
-  Suture::Ptr suture (new Suture());
-  return suture;
+  Needle::Ptr needle (new Needle());
+  return needle;
 }

@@ -1,5 +1,6 @@
 /* TODO:
    Figure out how to move information between nodes.
+   	   Is this done? I think it is.
    Finish make_unit.hpp to return a proper unit.
    Maybe take into account where holes/cuts were last iteration.
      (Basically use more info than just color)
@@ -34,11 +35,11 @@ using namespace Eigen;
 */
 extern std::vector<Hole::Ptr> holes;
 extern std::vector<Cut::Ptr> cuts;
-extern Suture::Ptr suture;
+extern Needle::Ptr needle;
 extern ColorCloudPtr extractSurgicalUnits (ColorCloudPtr in,
 					   vector<int> *holeInds,
 					   vector<int> *cutInds,
-					   int sutureFlag);
+					   int needleFlag);
 extern ColorCloudPtr showHole (ColorCloudPtr in, int index);
 extern ColorCloudPtr showCut (ColorCloudPtr in, int index);
 
@@ -65,12 +66,14 @@ static ColorCloudPtr cloud_pcl_filtered (new ColorCloud);
 bool pending = false;
 
 /*
-  Function to find the closest points to points in inPoints 
+  Function to find the closest points to each point in inPoints
   from the stored point cloud, cloud_pcl. It also stores the row
-  and column indices for the points.
+  and column indices for the points found.
+  This is basically to find the corners of the table in the
+  organized point_cloud.
   Returns true if all points are found within distance minTol to 
   maxTol and stores it them nearestPoint.
-  Returns false if any point is notfound.
+  Returns false if any point is not found.
 */
 bool findNearestPoints (const vector<Vector3f> *inPoints, 
 		       vector<Vector3f> *nearestPoints,
@@ -273,12 +276,12 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 
   if (!boxProp.m_init)  {
     hueFilter_wrapper hue_filter(LocalConfig::tableMinH, 
-				 LocalConfig::tableMaxH, 
-				 LocalConfig::tableMinS, 
-				 LocalConfig::tableMaxS,
-				 LocalConfig::tableMinV,
-				 LocalConfig::tableMaxV, 
-				 LocalConfig::tableNeg);
+								 LocalConfig::tableMaxH,
+								 LocalConfig::tableMinS,
+								 LocalConfig::tableMaxS,
+								 LocalConfig::tableMinV,
+								 LocalConfig::tableMaxV,
+								 LocalConfig::tableNeg);
 
     ColorCloudPtr cloud_color (new ColorCloud());
     hue_filter.filter(cloud_pcl, cloud_color);
@@ -344,22 +347,31 @@ bool cutCallback(filter_cloud_color::Cut::Request &req,
 
 
 /*
-  Hardcoded test for cuts, holes and suture.
+  Hardcoded test for cuts, holes and needle.
 */
 void testHolesCuts () {
   Cut::Ptr cut1 (new Cut());
   cut1->_H = 173; cut1->_S = 213; cut1->_V = 187;
-  cut1->_Hstd = 5; cut1->_Sstd = 44; cut1->_Vstd = 13;
+  cut1->_Hstd = 10; cut1->_Sstd = 44; cut1->_Vstd = 50;
 
   Cut::Ptr cut2 (new Cut());
   cut2->_H = 114; cut2->_S = 150; cut2->_V = 202;
-  cut2->_Hstd = 4; cut2->_Sstd = 36; cut2->_Vstd = 4;
+  cut2->_Hstd = 10; cut2->_Sstd = 36; cut2->_Vstd = 50;
 
   cuts.push_back(cut1);
   cuts.push_back(cut2);
 
-  suture->_H = 96; suture->_S = 63; suture->_V = 198;
-  suture->_Hstd = 7; suture->_Sstd = 41; suture->_Vstd = 44; 
+  needle->_H = 96; needle->_S = 63; needle->_V = 198;
+  needle->_Hstd = 7; needle->_Sstd = 41; needle->_Vstd = 44;
+}
+
+/*
+ * Function to get the data for the holes/cuts/needle from GUI.
+ * Block code till data is available. Assume data will be available at some point.
+ * TODO: Specify ordering of cuts/holes so that their indices mean something.
+ */
+void getGUIData () {
+	return;
 }
 
 
@@ -384,7 +396,7 @@ int main (int argc, char* argv[]) {
 
   //Test:
   testHolesCuts();
-  //
+  //getGUIData();
 
   if (LocalConfig::debugging) {
     std::cout<<"Size of holes: "<<holes.size()<<std::endl;
@@ -412,8 +424,11 @@ int main (int argc, char* argv[]) {
   if(LocalConfig::debugging) 
     std::cout<<"After first message."<<std::endl;
 
-  pcl::visualization::CloudViewer viewer ("Visualizer");
-  
+  boost::shared_ptr<pcl::visualization::CloudViewer> viewer;
+
+  if (LocalConfig::display)
+	  viewer.reset(new pcl::visualization::CloudViewer ("Visualizer"));
+
   
   while (ros::ok()) {
     cascader.filter(cloud_pcl, cloud_pcl_filtered);
@@ -423,13 +438,14 @@ int main (int argc, char* argv[]) {
     surgicalUnits_cloud = extractSurgicalUnits (cloud_pcl_filtered,
 						&holeInds,
 						&cutInds,
-						LocalConfig::suture);
+						LocalConfig::needle);
 
-
-    if (LocalConfig::debugging) {
-      viewer.showCloud (cloud_pcl_filtered);
-    } else {
-      viewer.showCloud (surgicalUnits_cloud);
+    if (LocalConfig::display) {
+    	if (LocalConfig::debugging) {
+    		viewer->showCloud (cloud_pcl_filtered);
+    	} else {
+    		viewer->showCloud (surgicalUnits_cloud);
+    	}
     }
 
     pending = false;

@@ -26,8 +26,9 @@ struct LocalConfig : Config {
   static bool useHF;
   static int holes;
   static int cuts;
-  static int suture;
+  static int needle;
   static int debugging;
+  static int display;
 
   LocalConfig() : Config() {
     params.push_back(new Parameter<std::string>
@@ -64,8 +65,10 @@ struct LocalConfig : Config {
     params.push_back(new Parameter<int>
 		     ("cuts", &cuts, "Indices for displayed cuts(0 - all)"));
     params.push_back(new Parameter<int>
-		     ("suture", &suture, "Flag to display suture"));
+		     ("needle", &needle, "Flag to display suturing needle"));
     params.push_back(new Parameter<int>
 		     ("debugging", &debugging, "Debug flag: 1/0 - Yes/No"));
+    params.push_back(new Parameter<int>
+			 ("display", &display, "Display on: 1/0 - Yes/No"));
   }
 };

@@ -5,11 +5,11 @@
 #include "surgical_units.hpp"
 
 /*
-  Variables for storing the holes/cuts/suture.
+  Variables for storing the holes/cuts/suturing needle.
 */
 std::vector<Hole::Ptr> holes;
 std::vector<Cut::Ptr> cuts;
-Suture::Ptr suture (new Suture());
+Needle::Ptr needle (new Needle());
 
 //Scale for stddev of hue to find points of similar color
 int HUE_STD_SCALE = 2;
@@ -81,45 +81,45 @@ ColorCloudPtr showCut (ColorCloudPtr in, int index) {
 }
 
 /*
-  Returns a point cloud displaying only the suture.
-  Runs a hueFilter and assumes the suture is of a unique color.
+  Returns a point cloud displaying only the suturing needle.
+  Runs a hueFilter and assumes the needle is of a unique color.
 */
-ColorCloudPtr showSuture (ColorCloudPtr in) {
+ColorCloudPtr showNeedle (ColorCloudPtr in) {
 
-  uint8_t suture_minH = (suture->_H - HUE_STD_SCALE*suture->_Hstd)%180;
-  uint8_t suture_maxH = (suture->_H + HUE_STD_SCALE*suture->_Hstd)%180;
-  uint8_t suture_minS = (suture->_S - suture->_Sstd > 0) ? suture->_S - suture->_Sstd : 0;
-  uint8_t suture_maxS = (suture->_S + suture->_Sstd < 255) ? suture->_S + suture->_Sstd : 255;
-  uint8_t suture_minV = (suture->_V - suture->_Vstd > 0) ? suture->_V - suture->_Vstd : 0;
-  uint8_t suture_maxV = (suture->_V + suture->_Vstd < 255) ? suture->_V + suture->_Vstd : 255;
+  uint8_t needle_minH = (needle->_H - HUE_STD_SCALE*needle->_Hstd)%180;
+  uint8_t needle_maxH = (needle->_H + HUE_STD_SCALE*needle->_Hstd)%180;
+  uint8_t needle_minS = (needle->_S - needle->_Sstd > 0) ? needle->_S - needle->_Sstd : 0;
+  uint8_t needle_maxS = (needle->_S + needle->_Sstd < 255) ? needle->_S + needle->_Sstd : 255;
+  uint8_t needle_minV = (needle->_V - needle->_Vstd > 0) ? needle->_V - needle->_Vstd : 0;
+  uint8_t needle_maxV = (needle->_V + needle->_Vstd < 255) ? needle->_V + needle->_Vstd : 255;
   
-  filter_cascader suture_cascader;
+  filter_cascader needle_cascader;
 
-  boost::shared_ptr<hueFilter_wrapper> suture_HF
-    (new hueFilter_wrapper (suture_minH, suture_maxH, suture_minS, suture_maxS,
-			    suture_minV, suture_maxV, false));
+  boost::shared_ptr<hueFilter_wrapper> needle_HF
+    (new hueFilter_wrapper (needle_minH, needle_maxH, needle_minS, needle_maxS,
+			    needle_minV, needle_maxV, false));
 
   boost::shared_ptr<removeOutliers_wrapper> 
-    suture_OR (new removeOutliers_wrapper());
+    needle_OR (new removeOutliers_wrapper());
   
-  suture_cascader.appendFilter(suture_HF);
-  suture_cascader.appendFilter(suture_OR);
+  needle_cascader.appendFilter(needle_HF);
+  needle_cascader.appendFilter(needle_OR);
 
   ColorCloudPtr out (new ColorCloud());
   
-  suture_cascader.filter(in, out);
+  needle_cascader.filter(in, out);
   
   return out;
 }
 
 /*
-  Function that returns with pointCloud cuts/holes/suture as specified.
+  Function that returns with pointCloud cuts/holes/suturing needle as specified.
   Takes pointCloud.
 */
 ColorCloudPtr extractSurgicalUnits (ColorCloudPtr in,
 				    vector<int> *holeInds,
 				    vector<int> *cutInds,
-				    int sutureFlag) {
+				    int needleFlag) {
   
   ColorCloudPtr out (new ColorCloud());
   bool holeFlag = false, cutFlag = false;
@@ -130,12 +130,12 @@ ColorCloudPtr extractSurgicalUnits (ColorCloudPtr in,
   } else {
     for (int i = 0; i < holeInds->size(); i++) 
       if (holeInds->at(i) <= holes.size()) {
-	holeFlag = true;
-	*out = *out + *showHole(in, holeInds->at(i));
+    	holeFlag = true;
+    	*out = *out + *showHole(in, holeInds->at(i));
       }
     if (!holeFlag)
       for (int i = 0; i < holes.size(); i++)
-	*out = *out + *showHole(in, i+1);
+    	*out = *out + *showHole(in, i+1);
   }
 
   if (cutInds->at(0) == 0)
@@ -144,16 +144,16 @@ ColorCloudPtr extractSurgicalUnits (ColorCloudPtr in,
   else {
     for (int i = 0; i < cutInds->size(); i++)
       if (cutInds->at(i) <= cuts.size()) {
-	*out = *out + *showCut(in, cutInds->at(i));
-	cutFlag = true;
+        *out = *out + *showCut(in, cutInds->at(i));
+    	cutFlag = true;
       }
     if (!cutFlag)
       for (int i = 0; i < cuts.size(); i++)
-	*out = *out + *showCut(in, i+1); 
+        *out = *out + *showCut(in, i+1);
   }
 
-  if (sutureFlag) 
-    *out = *out + *showSuture(in);
+  if (needleFlag)
+    *out = *out + *showNeedle(in);
   
   return out;
 }

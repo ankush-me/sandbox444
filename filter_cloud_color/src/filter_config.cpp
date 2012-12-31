@@ -29,5 +29,6 @@ int LocalConfig::minV = 0;
 bool LocalConfig::useHF = false;
 int LocalConfig::holes = 0;
 int LocalConfig::cuts = 0;
-int LocalConfig::suture = 1;
+int LocalConfig::needle = 0;
 int LocalConfig::debugging = 0;
+int LocalConfig::display = 1;

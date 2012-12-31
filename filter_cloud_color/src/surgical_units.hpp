@@ -57,17 +57,17 @@ struct Cut {
 };
 
 /*
-  Structure which hold basic information about the suture.
+  Structure which hold basic information about the suturing needle.
 */
-struct Suture {
-  typedef boost::shared_ptr<Suture> Ptr;
+struct Needle {
+  typedef boost::shared_ptr<Needle> Ptr;
 
   uint8_t _H,_S,_V;
   uint8_t _Hstd, _Sstd, _Vstd;
 
-  Suture ():  _H(), _S(), _V(), _Hstd(), _Sstd(), _Vstd() {};
+  Needle ():  _H(), _S(), _V(), _Hstd(), _Sstd(), _Vstd() {};
 
-  Suture(uint8_t H, uint8_t S, uint8_t V,
+  Needle(uint8_t H, uint8_t S, uint8_t V,
 	 uint8_t Hstd, uint8_t Sstd, uint8_t Vstd):
     _H(H), _S(S), _V(V), _Hstd(Hstd), _Sstd(Sstd), _Vstd(Vstd) {};
 };
