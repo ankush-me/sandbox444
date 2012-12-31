@@ -6,3 +6,12 @@ build/*
 *test/*
 
 filter_color_cloud2/*
+
+*eclipse*
+*/bin/*
+*/src/*/msg/*
+*/src/*/srv/*
+*/msg_gen/*
+*/srv_gen/*
+
+*filter_cloud_color/lib/*
