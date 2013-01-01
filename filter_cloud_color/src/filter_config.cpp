@@ -32,3 +32,4 @@ int LocalConfig::cuts = 0;
 int LocalConfig::needle = 0;
 int LocalConfig::debugging = 0;
 int LocalConfig::display = 1;
+int LocalConfig::useGUI = 0;

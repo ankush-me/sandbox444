@@ -29,6 +29,7 @@ struct LocalConfig : Config {
   static int needle;
   static int debugging;
   static int display;
+  static int useGUI;
 
   LocalConfig() : Config() {
     params.push_back(new Parameter<std::string>
@@ -70,5 +71,7 @@ struct LocalConfig : Config {
 		     ("debugging", &debugging, "Debug flag: 1/0 - Yes/No"));
     params.push_back(new Parameter<int>
 			 ("display", &display, "Display on: 1/0 - Yes/No"));
+    params.push_back(new Parameter<int>
+    		 ("useGUI", &useGUI, "useGUI: 1/0 - Yes/No"));
   }
 };

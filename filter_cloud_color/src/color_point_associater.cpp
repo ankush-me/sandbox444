@@ -5,6 +5,11 @@
    Remove most of bullet.
 */
 
+// testing
+#include <string>
+#include <pcl/visualization/pcl_visualizer.h>
+// testing
+
 #include <ros/topic.h>
 #include <ros/ros.h>
 
@@ -121,15 +126,15 @@ bool findNearestPoints (ColorCloudPtr cloud,
       int ret = tree->radiusSearch(searchPoint, tol, indices, dists, 1);
       
       if( ret == -1) {
-	PCL_ERROR("findNearestPoint got error code -1 from radiusSearch\n");
-	exit(0);
+    	  PCL_ERROR("findNearestPoint got error code -1 from radiusSearch\n");
+    	  exit(0);
       }
       if (!ret) {
-	tol += tolStepSize;
-	continue;
+    	  tol += tolStepSize;
+    	  continue;
       }
 
-      ColorPoint point = cloud_pcl->at(indices[0]);
+      ColorPoint point = cloud->at(indices[0]);
 
       Vector3f foundPoint;
       foundPoint[0] = point.x;
@@ -138,13 +143,13 @@ bool findNearestPoints (ColorCloudPtr cloud,
       nearestPoints->push_back(foundPoint);
 
       Vector2f imageInd;
-      imageInd[1] = indices[0]%cloud_pcl->width;
-      imageInd[0] = (indices[0]-imageInd[1])/cloud_pcl->width;
+      imageInd[0] = indices[0]%cloud->width; //column
+      imageInd[1] = (indices[0]-imageInd[0])/cloud->width; //row
       imageInds->push_back(imageInd);
 
       foundFlag = true;
       if (LocalConfig::debugging) {
-	std::cout<<"Found something." <<point<<std::endl;
+    	  std::cout<<"Found something." <<point<<std::endl;
       }
       break;
     }
@@ -205,7 +210,7 @@ Vector3f findAveragePoint (ColorCloudPtr cloud) {
 	int cloudSize = cloud->size();
 
 	for (int i = 0; i < cloudSize; ++i)
-		avgPoint = Vector3f (cloud->at(i).x, cloud->at(i).y, cloud->at(i).z);
+		avgPoint += Vector3f (cloud->at(i).x, cloud->at(i).y, cloud->at(i).z);
 	avgPoint = avgPoint/cloudSize;
 
 	return avgPoint;
@@ -218,38 +223,24 @@ Vector3f findAveragePoint (ColorCloudPtr cloud) {
                        initialized for finding normals.
     [see:
     http://www.pointclouds.org/documentation/tutorials/normal_estimation_using_integral_images.php ]*/
-NormalPtr findPointNormal(  const int x_idx, const int y_idx,
-							NormalEstimationPtr normal_estimator) {
+NormalPtr findPointNormal(  ColorCloudPtr cloud,
+							const int x_idx, const int y_idx) {
 
-  std::cout<<"  Number 1."<<std::endl;
-  int pt_idx = x_idx*normal_estimator->getInputCloud()->width + y_idx;
-  pcl::Normal normal;
-  std::cout<<"  Number 2. x:"<<x_idx<<" y:"<<y_idx<<" p:"<<pt_idx<<std::endl;
-  std::cout<<"  Organized? "<<normal_estimator->getInputCloud()->isOrganized()<<std::endl;
-  normal_estimator->computePointNormal(x_idx, y_idx, pt_idx, normal);
-  std::cout<<"  Number 3."<<std::endl;
-  NormalPtr ret_normal(new pcl::Normal);
-  *ret_normal  = normal;
-  std::cout<<"  Number 4."<<std::endl;
+  int pt_idx = y_idx*cloud->width + x_idx;
+
+  pcl::PointCloud<pcl::Normal>::Ptr normals (new pcl::PointCloud<pcl::Normal>);
+  NormalEstimationPtr normalEstimator(new NormalEstimation);
+  normalEstimator->setNormalEstimationMethod (normalEstimator->AVERAGE_3D_GRADIENT);
+  normalEstimator->setMaxDepthChangeFactor(0.02f);
+  normalEstimator->setNormalSmoothingSize(10.0f);
+  normalEstimator->setInputCloud(cloud);
+  normalEstimator->compute(*normals);
+
+  NormalPtr ret_normal(new pcl::Normal());
+  *ret_normal  = normals->at(pt_idx);
+
   return ret_normal;
 }
-
-NormalPtr findPointNormal2(const int x_idx, const int y_idx,
-							NormalEstimationPtr normal_estimator) {
-
-  std::cout<<"  Number 1."<<std::endl;
-  int pt_idx = x_idx*normal_estimator->getInputCloud()->width + y_idx;
-  pcl::Normal normal;
-  std::cout<<"  Number 2. x:"<<x_idx<<" y:"<<y_idx<<" p:"<<pt_idx<<std::endl;
-  std::cout<<"  Organized? "<<normal_estimator->getInputCloud()->isOrganized()<<std::endl;
-  normal_estimator->computePointNormal(x_idx, y_idx, pt_idx, normal);
-  std::cout<<"  Number 3."<<std::endl;
-  NormalPtr ret_normal(new pcl::Normal);
-  *ret_normal  = normal;
-  std::cout<<"  Number 4."<<std::endl;
-  return ret_normal;
-}
-
 
 /*
   Initializing values for the box filter.
@@ -400,9 +391,9 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 
     if (cloud_color->size() < 50)
       ROS_ERROR("The table cannot be seen.");
-    else {
+    else
       initBoxFilter (cloud_color);
-    }
+
     createFilter(cascader);
  
   } 
@@ -481,20 +472,16 @@ bool cutLineCallback(filter_cloud_color::PointDir::Request &req,
 
 /*
   Service callback to return the midpoint of and surface normal at
-  the hole given by the index.
-*/
+  the hole given by the index. */
 bool holeNormalCallback(filter_cloud_color::PointDir::Request &req,
-		    		 	filter_cloud_color::PointDir::Response &resp) {
+		        		filter_cloud_color::PointDir::Response &resp) {
 
   if (req.index > holes.size() || req.index < 1 || !cloud_pcl_filtered)
     return false;
 
-  ColorCloudPtr saved_pcl (new ColorCloud());
-  *saved_pcl = *cloud_pcl;
-
+  ColorCloudPtr saved_pcl (new ColorCloud(*cloud_pcl));
   ColorCloudPtr hole_pcl = showHole (cloud_pcl_filtered, req.index);
 
-  std::cout<<"Number 1."<<std::endl;
   Vector3f avgPoint = findAveragePoint (hole_pcl);
 
   vector<Vector3f> inPoints;
@@ -502,22 +489,10 @@ bool holeNormalCallback(filter_cloud_color::PointDir::Request &req,
   vector<Vector3f> nearestPoints;
   vector<Vector2f> imageInds;
 
-  std::cout<<"Number 2."<<std::endl;
-  *saved_pcl = *cloud_pcl;
   bool found = findNearestPoints (saved_pcl, &inPoints, &nearestPoints, &imageInds);
-  std::cout<<"Number 3."<<std::endl;
   if (!found) return found;
 
-  // Initialize normal-estimation structure
-  NormalEstimationPtr normalEstimator(new NormalEstimation);
-  normalEstimator->setNormalEstimationMethod (normalEstimator->AVERAGE_3D_GRADIENT);
-  normalEstimator->setMaxDepthChangeFactor(0.02f);
-  normalEstimator->setNormalSmoothingSize(0.5f);
-  normalEstimator->setInputCloud(saved_pcl);
-
-  std::cout<<"Number 4."<<std::endl;
-  NormalPtr holeNormal = findPointNormal((int) imageInds[0][0], (int) imageInds[0][1], normalEstimator);
-  std::cout<<"Number 5."<<std::endl;
+  NormalPtr holeNormal = findPointNormal(saved_pcl, (int) imageInds[0][0], (int) imageInds[0][1]);
 
   resp.point.x = avgPoint[0];
   resp.point.y = avgPoint[1];
@@ -525,7 +500,6 @@ bool holeNormalCallback(filter_cloud_color::PointDir::Request &req,
   resp.dir.x   = holeNormal->normal_x;
   resp.dir.y   = holeNormal->normal_y;
   resp.dir.z   = holeNormal->normal_z;
-  std::cout<<"Number 6."<<std::endl;
 
   return true;
 }
@@ -623,17 +597,18 @@ int main (int argc, char* argv[]) {
   ros::ServiceServer cutLineService =
      nh.advertiseService("getCutLine", cutLineCallback);
   ros::ServiceServer holeNormalService =
-     nh.advertiseService("getHoleNormal", holeNormalCallback);
-
-  ros::ServiceClient infoClient =
-    nh.serviceClient<surgical_msgs::HoleCutInfo>("getGUIData");
+	 nh.advertiseService("getHoleNormal", holeNormalCallback);
 
   if(LocalConfig::debugging) 
     std::cout<<"After defining subscriber, services and clients."<<std::endl;
 
-  //Test:
-  testHolesCuts();
-  //getGUIData(&infoClient);
+  if (LocalConfig::useGUI) {
+	  ros::ServiceClient infoClient =
+	    nh.serviceClient<surgical_msgs::HoleCutInfo>("getGUIData");
+	  getGUIData(&infoClient);
+  }
+  else //Test:
+	  testHolesCuts();
 
   if (LocalConfig::debugging) {
     std::cout<<"Size of holes: "<<holes.size()<<std::endl;
@@ -667,15 +642,15 @@ int main (int argc, char* argv[]) {
 	  viewer.reset(new pcl::visualization::CloudViewer ("Visualizer"));
 
   
-  while (ros::ok()) {
+  while (ros::ok() && pending) {
     cascader.filter(cloud_pcl, cloud_pcl_filtered);
     
     ColorCloudPtr surgicalUnits_cloud (new ColorCloud);
 
     surgicalUnits_cloud = extractSurgicalUnits (cloud_pcl_filtered,
-						&holeInds,
-						&cutInds,
-						LocalConfig::needle);
+    											&holeInds,
+    											&cutInds,
+    											LocalConfig::needle);
 
     if (LocalConfig::display) {
     	if (LocalConfig::debugging) {
@@ -684,11 +659,10 @@ int main (int argc, char* argv[]) {
     		viewer->showCloud (surgicalUnits_cloud);
     	}
     }
-
     pending = false;
     while (ros::ok() && !pending) {
-      sleep(.01);
-      ros::spinOnce();
+    	sleep(.01);
+    	ros::spinOnce();
     }
   }
 }
