@@ -163,6 +163,7 @@ bool findNearestPoints (ColorCloudPtr cloud,
   Function to find the indices of the k closest points to point
   given from the stored point cloud, cloud_pcl.
 */
+// Not being used.
 void findkClosestPoints ( Vector3f inPoint, int k,
 						  vector< int > &indices,
 		       	   	   	  int minTol=0.001, int maxTol=1) {
@@ -214,6 +215,46 @@ Vector3f findAveragePoint (ColorCloudPtr cloud) {
 	avgPoint = avgPoint/cloudSize;
 
 	return avgPoint;
+}
+
+/*
+ * Given the point cloud of a cut, this function finds the midpoint of a cut and
+ * the direction of the line through it.
+ */
+std::vector<float> findLineCoefficients (ColorCloudPtr cloud) {
+
+	std::vector<float> lineCoeffs = getLineCoeffsRansac(cloud);
+	Vector3f ptOnLine (lineCoeffs[0], lineCoeffs[1], lineCoeffs[2]);
+	Vector3f lineVec (lineCoeffs[3], lineCoeffs[4], lineCoeffs[5]);
+	lineVec.normalize();
+
+	pcl::PointXYZRGB firstPointCloudPt = cloud->at(0);
+	Vector3f firstPt (firstPointCloudPt.x, firstPointCloudPt.y, firstPointCloudPt.z);
+
+	float maxPointVal, minPointVal;
+	maxPointVal = minPointVal = lineVec.dot(Vector3f(firstPt - ptOnLine));
+
+	for (int i=1, cloudSize=cloud->size(); i<cloudSize; ++i) {
+		pcl::PointXYZRGB pointCloudPt = cloud->at(i);
+		Vector3f point (pointCloudPt.x, pointCloudPt.y, pointCloudPt.z);
+		float currVal = lineVec.dot(point - ptOnLine);
+
+		if (maxPointVal < currVal) maxPointVal = currVal;
+		if (minPointVal > currVal) minPointVal = currVal;
+	}
+
+	Vector3f midPoint = ptOnLine + (maxPointVal+minPointVal)*lineVec/2;
+
+	std::vector<float> finalCoeffs;
+	finalCoeffs.resize(6);
+	finalCoeffs[0] = midPoint[0];
+	finalCoeffs[1] = midPoint[1];
+	finalCoeffs[2] = midPoint[2];
+	finalCoeffs[3] = lineVec[0];
+	finalCoeffs[4] = lineVec[1];
+	finalCoeffs[5] = lineVec[2];
+
+	return finalCoeffs;
 }
 
 /** Finds the surface normal around a point.
@@ -660,6 +701,7 @@ int main (int argc, char* argv[]) {
     	}
     }
     pending = false;
+
     while (ros::ok() && !pending) {
     	sleep(.01);
     	ros::spinOnce();
