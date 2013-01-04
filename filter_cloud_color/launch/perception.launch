@@ -1,0 +1,23 @@
+<launch>
+
+<!-- Surgical GUI -->
+<node name="surgical"
+      pkg="surgicalGUI"
+      type="surgical"
+      />
+
+<!-- Color association from GUI -->
+<node name="color_association"
+      pkg="color_association"
+      type="associate"
+      />
+
+<!-- Color association of holes/cuts based on HSV info 
+     Potentially a lot of other arguments for this node -->
+<node name="hole_cut_color_associator"
+      pkg="filter_cloud_color"
+      type="color_associater"
+      args="--useGUI=1 --downsample=0.003"
+      />
+
+</launch>

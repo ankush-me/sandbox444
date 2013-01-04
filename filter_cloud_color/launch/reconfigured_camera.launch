@@ -1,0 +1,19 @@
+<launch>
+  
+  <!-- args -->
+  <arg name="camera"
+       default="camera"
+       />
+
+  <!-- start up -->
+  <include file="$(find openni_launch)/launch/openni.launch">
+    <arg name="camera" value="$(arg camera)" />
+  </include>
+    
+  <node pkg="dynamic_reconfigure" 
+        type="dynparam" 
+        name="dynparam"
+        args="set /$(arg camera)/driver depth_registration true" 
+	/>
+
+</launch>
