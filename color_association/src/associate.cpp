@@ -183,7 +183,10 @@ void  display_HSV(uint8_t h, uint8_t s, uint8_t v) {
 
 /** Averages the HSVINFO in the input vector.
     The output HSV values are mean of the input.
-    The output standard deviations are the max of the input. */
+    The output standard deviations are the max of the input.
+    Considers wrap-around by assuming that the points chosen do
+    not vary wildly in H values (points are chosen properly).
+    Basicallly a hack for red.*/
 HSVInfo::Ptr average_HSV_info(std::vector<HSVInfo::Ptr> hsv_input) {
   int h_total, s_total, v_total;
   h_total = s_total = v_total = 0;
@@ -191,8 +194,23 @@ HSVInfo::Ptr average_HSV_info(std::vector<HSVInfo::Ptr> hsv_input) {
   float h_std, s_std, v_std;
   h_std = s_std = v_std = 0.0;
 
+  bool below30 = false;
+  bool above150 = false;
+
   for(unsigned int i = 0; i < hsv_input.size(); i+=1) {
-    h_total += (int) hsv_input[i]->h;
+	if (!i) {
+		h_total += (int) hsv_input[i]->h;
+		below30 = h_total < 30 ? true : false;
+		above150 = h_total > 150 ? true : false;
+	}
+	else {
+		if (below30 && (int) hsv_input[i]->h > 150)
+			h_total += (int) hsv_input[i]->h - 180;
+		else if (above150 && (int) hsv_input[i]->h < 30)
+			h_total += (int) hsv_input[i]->h + 180;
+		else
+			h_total += (int) hsv_input[i]->h;
+	}
     s_total += (int) hsv_input[i]->s;
     v_total += (int) hsv_input[i]->v;
 
@@ -201,6 +219,8 @@ HSVInfo::Ptr average_HSV_info(std::vector<HSVInfo::Ptr> hsv_input) {
     v_std = v_std > hsv_input[i]->v_std? v_std : hsv_input[i]->v_std;
   }
   h_total /= hsv_input.size();
+  while (h_total > 180) h_total -= 180;
+  while (h_total < 0) h_total += 180;
   s_total /= hsv_input.size();
   v_total /= hsv_input.size();
 
