@@ -499,7 +499,7 @@ bool cutLineCallback(filter_cloud_color::PointDir::Request &req,
 
   ColorCloudPtr cut_pcl = showCut (cloud_pcl_filtered, req.index);
 
-  std::vector<float> lineCoeffs = getLineCoeffsRansac(cut_pcl);
+  std::vector<float> lineCoeffs = findLineCoefficients(cut_pcl);
 
   resp.point.x = lineCoeffs[0];
   resp.point.y = lineCoeffs[1];
@@ -700,8 +700,8 @@ int main (int argc, char* argv[]) {
     		viewer->showCloud (surgicalUnits_cloud);
     	}
     }
-    pending = false;
 
+    pending = false;
     while (ros::ok() && !pending) {
     	sleep(.01);
     	ros::spinOnce();
