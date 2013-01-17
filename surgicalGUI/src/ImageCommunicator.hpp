@@ -82,7 +82,9 @@ private:
 	return;
       }
 
-      _main_frame    = cv_ptr->image.clone(); 
+      cv::Mat temp_frame;
+      temp_frame   = cv_ptr->image.clone();
+      cv::resize(temp_frame, _main_frame, cv::Size(), ZOOM_FACTOR, ZOOM_FACTOR, CV_INTER_LINEAR);
       _working_frame = _main_frame.clone();
       cv::imshow(_window_name, _working_frame);
     }
@@ -97,7 +99,7 @@ public:
     _cloud_ptr(new pcl::PointCloud<pcl::PointXYZRGB>(480,640)),
     _cloud_ptr_ros(new sensor_msgs::PointCloud2),
     _sensor_image(),
-    _main_frame(cv::Mat::zeros(480,640,CV_32FC3)),
+    _main_frame(cv::Mat::zeros(ZOOM_FACTOR*480, ZOOM_FACTOR*640, CV_32FC3)),
     _working_frame(),
     _is_fixed(false),
     _window_name(window_name),
@@ -136,11 +138,11 @@ public:
 
     std::list<Hole::Ptr>::iterator holes_iter;
     for (holes_iter = holes.begin(); holes_iter != holes.end(); holes_iter++)
-      (*holes_iter)->paint(_working_frame);
+      (*holes_iter)->paint(_working_frame, ZOOM_FACTOR);
 
     std::list<Cut::Ptr>::iterator cuts_iter;
     for (cuts_iter = cuts.begin(); cuts_iter != cuts.end(); cuts_iter++)
-      (*cuts_iter)->paint(_working_frame);
+      (*cuts_iter)->paint(_working_frame, ZOOM_FACTOR);
 
     cv::imshow(_window_name, _working_frame);
   }
