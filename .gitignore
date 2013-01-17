@@ -19,3 +19,6 @@ lib/*
 */lib/*
 *.cproject*
 *.project*
+*backup*
+*__init__.py
+*Makefile*
