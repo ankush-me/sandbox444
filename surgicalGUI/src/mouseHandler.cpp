@@ -20,8 +20,8 @@ void mouseHandler(int event, int x, int y, int flags, void* data) {
 
     for (int x_idx = 0; x_idx < offsets.size(); x_idx += 1) {
       for (int y_idx = 0; y_idx < offsets.size(); y_idx += 1) {
-	int x_new = x + offsets[x_idx];
-	int y_new = y + offsets[y_idx];
+	int x_new = round(x/ZOOM_FACTOR) + offsets[x_idx];
+	int y_new = round(y/ZOOM_FACTOR) + offsets[y_idx];
 	if ( ( (0 <= x_new) && (x_new < cloud_ptr->width))
 	     && ( (0 <= y_new) && (y_new < cloud_ptr->height)) ) {
 	  pcl::PointXYZRGB pt = cloud_ptr->at(x_new,y_new);

@@ -25,12 +25,12 @@ class Cut {
     _pts.push_back(support_pt);
   }
 
-  void paint(cv::Mat &mat, cv::Scalar color=cv::Scalar(50,0,50), int radius=3) {
+  void paint(cv::Mat &mat, float zoom_factor, cv::Scalar color=cv::Scalar(50,0,50), int radius=3) {
     for(int i = 0; i < _pts.size(); i += 1) {
-      _pts[i]->paint(mat, color, radius);
+      _pts[i]->paint(mat, zoom_factor, color, radius);
       if (i > 0) {
-	cv::Point end1(_pts[i-1]->get_row(), _pts[i-1]->get_col());
-	cv::Point end2(_pts[i]->get_row(), _pts[i]->get_col());
+	cv::Point end1(round(zoom_factor*(_pts[i-1]->get_row())), round(zoom_factor*(_pts[i-1]->get_col())));
+	cv::Point end2(round(zoom_factor*(_pts[i]->get_row())), round(zoom_factor*(_pts[i]->get_col())));
 	cv::line(mat, end1, end2, color);
       }
     }
