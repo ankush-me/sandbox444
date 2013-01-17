@@ -17,7 +17,7 @@
 <node name="hole_cut_color_associator"
       pkg="filter_cloud_color"
       type="color_associater"
-      args="--useGUI=1 --downsample=0.003"
+      args="--useGUI=1"
       />
 
 </launch>
