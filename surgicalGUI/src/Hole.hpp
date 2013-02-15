@@ -23,10 +23,10 @@ class Hole {
   int inline get_row() {return _row_idx;}
   int inline get_col() {return _col_idx;}
 
-  void paint(cv::Mat &mat, cv::Scalar color=cv::Scalar(50,0,0),
+  void paint(cv::Mat &mat, float zoom_factor, cv::Scalar color=cv::Scalar(50,0,0),
 	     int radius=6) {
-    cv::Point center(_row_idx, _col_idx);
-    cv::circle(mat, center, radius, color, CV_FILLED);
+    cv::Point center(round(zoom_factor*_row_idx), round(zoom_factor*_col_idx));
+    cv::circle(mat, center, zoom_factor*radius, color, CV_FILLED);
   }
 };
 
