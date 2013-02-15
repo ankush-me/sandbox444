@@ -63,7 +63,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         for i in range(0, self.syncList.length()):
             trajItem = self.syncList.itemList[i]
             (k, joints)  = self.syncList.trajData[trajItem.getStr()]
-            jointsSender = JointsPusher(self.pipeOR, joints) 
+            jointsSender = JointsPusher(self.pipeOR, joints[trajItem.start:trajItem.end+1,:]) 
             jointsSender.start()
 
 
@@ -72,9 +72,8 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         if selection >=0 and selection < self.syncList.length():
             trajItem    = self.syncList.itemList[selection]
             (k, trajectory) = self.syncList.trajData[trajItem.getStr()] 
-            jointsSender = JointsPusher(self.pipeOR, trajectory) 
+            jointsSender = JointsPusher(self.pipeOR, trajectory[trajItem.start:trajItem.end+1,:]) 
             jointsSender.start()
-            ## need to update the play slider here
                 
         
 
@@ -120,26 +119,40 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
     def updateJoints(self, tickPos):
         selection = self.trajList.currentRow()
         if selection >=0:
-            trajItem    = self.syncList.itemList[selection]
-            (k, trajectory) = self.syncList.trajData[trajItem.getStr()]
-            jointsSender = JointsPusher(self.pipeOR, [trajectory[tickPos]]) 
+            trajItem        = self.syncList.itemList[selection]
+            trajectory     = trajItem.getTrajectory()
+            jointsSender    = JointsPusher(self.pipeOR, [trajectory[tickPos]]) 
             jointsSender.start()
 
         
     def moved_startSlider(self, pos):
         selection = self.trajList.currentRow()
         if selection >= 0:
+            
             item  = self.syncList.itemList[selection]
-            item.start = pos
+        
+            endPos = item.length - 1 - self.endSlider.value()
+            if pos >= endPos:
+                pos = max(0,endPos-1)
+                self.startSlider.setValue(pos)
+
+            item.start = max(0,pos)
             self.playSlider.setMinimum(item.start)
             
-    
+
     def moved_endSlider(self, pos):
         selection = self.trajList.currentRow()
         if selection >= 0:
             item  = self.syncList.itemList[selection]
+            
+            startPos = self.startSlider.value()
+            p  = item.length-1-pos
+            if p < startPos:
+                pos = max(0,item.length-2-startPos)
+                self.endSlider.setValue(pos)
+
             item.end = item.length -1 - pos
-            self.playSlider.setMaximum(item.end)
+            self.playSlider.setMaximum(min(item.end, item.length-1))
             
 
     def moved_playSlider(self, pos):
@@ -158,29 +171,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
             s.add((path, prefix))
         for (path, prefix) in s:
             trajectoryItem(self.syncList, prefix, path)
-        
-
-    
-        
-        
-class playSlider:
-    
-    def __init__(self, qtSliderWidget, syncList, robot):
-        self.slider       =  qtSliderWidget
-        self.syncList     =  syncList
-        self.frame        =  None
-        self.robot        =  robot
-
-
-    def sliderMoved(self, pos):
-        trajIdx = self.syncList.listWidget.currentRow()
-        if trajIdx >= 0 and trajIdx < self.syncList.length():
-            traj = self.syncList.lst[trajIdx]
-            self.frame = self.getFrame(traj, self.slider.tickPosition())
-            
-    def getFrame(self):
-        import brett2.PR2.PR2
-            
+          
     
 class trajectoryItem:
 
@@ -197,7 +188,9 @@ class trajectoryItem:
         listObj.addItem(self)
         
     def getTrajectory(self):
-        return self.listObj.trajData[self.path+self.prefix]
+        (k, traj) = self.listObj.trajData[self.getStr()]
+        return traj
+            
     
     def getDisplayName(self):
         return self.qtItem.text()
@@ -231,3 +224,15 @@ class JointsPusher(Thread):
 
 if __name__ == "__main__":
     ProcessStarter()
+    
+    
+    
+    
+    
+"""
+ToDo:
+1. Play selected should update the playSlider
+2. Exporting to new files with interpolation
+3. Playing the merged trajectory
+4. Need a stop/ pause button
+"""

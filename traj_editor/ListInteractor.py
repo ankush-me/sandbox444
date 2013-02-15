@@ -11,7 +11,7 @@ class ListInteractor:
         """
         Add an item to the internal list as well as display list.
         """
-        itemName = trajItem.path + trajItem.prefix
+        itemName = trajItem.getStr()
         itemDisplayName = trajItem.prefix
         
         length = -1
@@ -44,7 +44,7 @@ class ListInteractor:
         item = QtGui.QListWidgetItem(itemDisplayName)
         self.listWidget.addItem(item)
 
-        (trajItem.length, trajItem.start, trajItem.end, trajItem.qtItem) = (length, 0, length, item)
+        (trajItem.length, trajItem.start, trajItem.end, trajItem.qtItem) = (length, 0, length-1, item)
         self.itemList.append(trajItem)
 
 
