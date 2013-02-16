@@ -15,7 +15,6 @@ class ProcessStarter(object):
         self.orprocess  = None
         self.guiprocess = None
         (self.pipeGUI, self.pipeOR) = Pipe()
-
         self.StartProcesses()
         
 
@@ -23,16 +22,20 @@ class ProcessStarter(object):
         self.guiprocess = Process(target=self._StartGUI)
         self.guiprocess.start()        
         self.pipeGUI.send(["StartViewer", None])
-
         self.orprocess = Process(target=ORServer,args=(self.pipeOR,))
         self.orprocess.start()
-
-
-
         return True
+    
+    def terminate(self):
+        try:
+            self.pipeGUI.send(["Stop", None])
+            self.guiprocess.terminate()
+            self.orprocess.terminate()
+        except:
+            pass
 
     def _StartGUI(self):
-        app = QtGui.QApplication(sys.argv)
-        form = trajApp(self.pipeGUI)
+        app  = QtGui.QApplication(sys.argv)
+        form = trajApp(self.pipeGUI, self)
         form.show()
-        app.exec_()
+        sys.exit(app.exec_())

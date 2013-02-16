@@ -12,6 +12,9 @@ class ORServer(object):
     Server to receive [and send] commands from [to] Qt GUI.  
     '''
     
+    def __del__(self):
+        RaveDestroy()
+    
     def __init__(self, pipe):
         self.pipe    =  pipe
         self.running =  True
@@ -24,12 +27,14 @@ class ORServer(object):
         while(self.running):
             (functionName,args) = self.pipe.recv()
             self.executeFunction(functionName, args)
-            
 
-    def executeFunction(self,name,args):
-        
-        
-        
+            
+    def Stop(self):
+        self.running = False
+        return None,"Stopping!!!"
+
+
+    def executeFunction(self,name,args):  
         rValue = None
         rMessage = "Function with " + name + " not available"
         
@@ -52,7 +57,6 @@ class ORServer(object):
     
     def SetJoints(self,joints):
         if self.f:
-            print "received joints : ", joints
             self.f = False
         joints = eval(joints)
         self.pr2.set_joints(joints)
