@@ -35,7 +35,6 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
 
         
     def addSlots(self):
-        QtCore.QObject.connect(self.playButton,         QtCore.SIGNAL("clicked()"), self.clicked_playButton)
         QtCore.QObject.connect(self.playSelectedButton, QtCore.SIGNAL("clicked()"), self.clicked_playSelectedButton)
         QtCore.QObject.connect(self.removeButton,       QtCore.SIGNAL("clicked()"), self.clicked_removeButton)
         QtCore.QObject.connect(self.addButton,          QtCore.SIGNAL("clicked()"), self.clicked_addButton)
@@ -65,12 +64,6 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
             self.playSlider.setValue(trajItem.start)
 
             
-
-    def clicked_playButton(self):
-        for i in range(0, self.syncList.length()):
-            trajItem = self.syncList.itemList[i]
-            (k, joints)  = self.syncList.trajData[trajItem.getStr()]
-
 
     def setVisibilityModifiers(self, visible):
         self.addButton.setDisabled(visible)
