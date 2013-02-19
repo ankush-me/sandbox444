@@ -31,3 +31,5 @@ srv_gen/*
 
 lib/*
 */lib/*
+
+*.pyc
