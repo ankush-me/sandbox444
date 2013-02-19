@@ -3,7 +3,7 @@ import sys, os, re, logging, signal, time
 from numpy import random
 from multiprocessing import Process,Pipe
 from threading import Thread
-from traj_editor_ui import Ui_MainWindow
+from traj_editor_new import Ui_MainWindow
 import numpy as np
 from ListInteractor import ListInteractor
 from EasyPR2        import EasyPR2
@@ -24,6 +24,8 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         self.syncList = ListInteractor(self.trajList)
         self.processStarter = processStarter
         self.addSlots()
+        self.startVal.setText('start: ')
+        self.endVal.setText('end: ')
 
 
     def closeEvent(self, event):
@@ -62,7 +64,8 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
             self.playSlider.setMinimum(trajItem.start)
             self.playSlider.setMaximum(trajItem.end)
             self.playSlider.setValue(trajItem.start)
-
+            self.startVal.setText('start: %d'% trajItem.start)
+            self.endVal.setText('end: %d'% trajItem.end)
             
 
     def setVisibilityModifiers(self, visible):
@@ -97,8 +100,19 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
     def clicked_removeButton(self):
         if self.syncList.length() > 0:
             self.syncList.removeItem(self.trajList.currentRow())
-    
-
+            if self.syncList.length() > 0:
+                selection = self.trajList.currentRow()
+                if selection >=0:
+                    trajItem        = self.syncList.itemList[selection]
+                    self.startVal.setText('start: %d'%trajItem.start)
+                    self.endVal.setText('end: %d'%trajItem.end)
+            else:
+                self.startVal.setText('start: ')
+                self.endVal.setText('end: ')
+                    
+                    
+                
+                
     def clicked_addButton(self):
         paths = self.dialog.getOpenFileNames(caption='Add Trajectory')
         self.addTrajectories(paths)
@@ -180,6 +194,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
                 self.startSlider.setValue(pos)
             item.start = pos
             self.playSlider.setMinimum(item.start)
+            self.startVal.setText("start: %d"%item.start)
             
 
     def moved_endSlider(self, pos):
@@ -193,6 +208,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
                 self.endSlider.setValue(pos)
             item.end = item.length - pos
             self.playSlider.setMaximum(item.end)
+            self.endVal.setText("end: %d"%item.end)
             
 
     def moved_playSlider(self, pos):
