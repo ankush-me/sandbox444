@@ -6,6 +6,7 @@ build/*
 */build/*
 *test/*
 filter_color_cloud2/*
+old_filter*
 *eclipse*
 */src/*/msg/*
 */src/*/srv/*
