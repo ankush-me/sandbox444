@@ -75,7 +75,6 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         self.downButton.setDisabled(visible)
         self.upButton.setDisabled(visible)
         self.copyButton.setDisabled(visible)
-        self.playButton.setDisabled(visible)
         self.startSlider.setDisabled(visible)                     
         self.endSlider.setDisabled(visible)                    
         self.trajList.setDisabled(visible)
