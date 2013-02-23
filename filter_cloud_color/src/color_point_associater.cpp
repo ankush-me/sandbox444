@@ -19,6 +19,7 @@
 #include <pcl/search/pcl_search.h>
 #include <pcl/features/integral_image_normal.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/filters/filter.h>
 
 #include "filter_wrapper.h"
 #include "filter_config.h"
@@ -168,7 +169,7 @@ void findkClosestPoints ( Vector3f inPoint, int k,
 						  vector< int > &indices,
 		       	   	   	  int minTol=0.001, int maxTol=1) {
 
-
+ 
 	pcl::search::KdTree<ColorPoint>::Ptr
     	tree (new pcl::search::KdTree<ColorPoint>);
 
@@ -415,20 +416,24 @@ void update() {
 */
 void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
   fromROSMsg(*msg, *cloud_pcl);
-
+  
   if (!boxProp.m_init)  {
     hueFilter_wrapper hue_filter(LocalConfig::tableMinH, 
-								 LocalConfig::tableMaxH,
-								 LocalConfig::tableMinS,
-								 LocalConfig::tableMaxS,
-								 LocalConfig::tableMinV,
-								 LocalConfig::tableMaxV,
-								 LocalConfig::tableNeg);
+				 LocalConfig::tableMaxH,
+				 LocalConfig::tableMinS,
+				 LocalConfig::tableMaxS,
+				 LocalConfig::tableMinV,
+				 LocalConfig::tableMaxV,
+				 LocalConfig::tableNeg);
+
 
     ColorCloudPtr cloud_color (new ColorCloud());
     hue_filter.filter(cloud_pcl, cloud_color);
 
-    cloud_color = clusterFilter(cloud_color, 0.01, 100);      
+    std::vector<int> nanIndexes;
+    pcl::removeNaNFromPointCloud(*cloud_color, *cloud_color, nanIndexes);
+
+    cloud_color = clusterFilter(cloud_color, 0.01, 10);
 
     if (cloud_color->size() < 50)
       ROS_ERROR("The table cannot be seen.");
@@ -437,7 +442,7 @@ void callback(const sensor_msgs::PointCloud2ConstPtr& msg) {
 
     createFilter(cascader);
  
-  } 
+  }
   pending = true;
 }
 
@@ -577,44 +582,48 @@ void testHolesCuts () {
  */
 void getGUIData (ros::ServiceClient * infoClient) {
 
-	while (true) {
-		surgical_msgs::HoleCutInfo hcInfo;
-		if (infoClient->call(hcInfo)) {
-			for (int i = 0; i < hcInfo.response.holeH.size(); ++i) {
-				Hole::Ptr hole =
-				  make_hole ( hcInfo.response.holeH[i],
-							  hcInfo.response.holeS[i],
-							  hcInfo.response.holeV[i],
-							  hcInfo.response.holeH_std[i],
-							  hcInfo.response.holeS_std[i],
-							  hcInfo.response.holeV_std[i]);
+  while (true) {
+    surgical_msgs::HoleCutInfo hcInfo;
+    if (infoClient->call(hcInfo)) {
+
+      if (LocalConfig::debugging)
+	std::cout<<"Got GUI data"<<std::endl;
+
+      for (int i = 0; i < hcInfo.response.holeH.size(); ++i) {
+	Hole::Ptr hole =
+	  make_hole ( hcInfo.response.holeH[i],
+		      hcInfo.response.holeS[i],
+		      hcInfo.response.holeV[i],
+		      hcInfo.response.holeH_std[i],
+		      hcInfo.response.holeS_std[i],
+		      hcInfo.response.holeV_std[i]);
 				
-				holes.push_back(hole);
-			}
+	holes.push_back(hole);
+      }
 			
-			for (int i = 0; i < hcInfo.response.cutH.size(); ++i) {
-				Cut::Ptr cut =
-					make_cut ( hcInfo.response.cutH[i],
-							   hcInfo.response.cutS[i],
-							   hcInfo.response.cutV[i],
-							   hcInfo.response.cutH_std[i],
-							   hcInfo.response.cutS_std[i],
-							   hcInfo.response.cutV_std[i]);
+      for (int i = 0; i < hcInfo.response.cutH.size(); ++i) {
+	Cut::Ptr cut =
+	  make_cut ( hcInfo.response.cutH[i],
+		     hcInfo.response.cutS[i],
+		     hcInfo.response.cutV[i],
+		     hcInfo.response.cutH_std[i],
+		     hcInfo.response.cutS_std[i],
+		     hcInfo.response.cutV_std[i]);
 				
-				cuts.push_back(cut);
-			}
-			break;
-		}
-		else {
-		    ros::spinOnce();
-		    sleep(0.3);
-		    if (!ros::ok()) 
-		      throw std::runtime_error
-		      	  ("caught signal while waiting for hole/cut data");
-		}
-	}
-	if(LocalConfig::debugging) 
-		std::cout<<"Holes size: "<<holes.size()<<" and Cuts size: "<<cuts.size()<<std::endl;
+	cuts.push_back(cut);
+      }
+      break;
+    }
+    else {
+      ros::spinOnce();
+      sleep(0.3);
+      if (!ros::ok()) 
+	throw std::runtime_error
+	  ("caught signal while waiting for hole/cut data");
+    }
+  }
+  if(LocalConfig::debugging) 
+    std::cout<<"Holes size: "<<holes.size()<<" and Cuts size: "<<cuts.size()<<std::endl;
 }
 
 
@@ -626,8 +635,6 @@ int main (int argc, char* argv[]) {
   ros::init(argc, argv, "find_color_points");
 
   ros::NodeHandle nh;
-  ros::Subscriber pc_sub = 
-    nh.subscribe(LocalConfig::pcTopic, 1, &callback);
 
   ros::ServiceServer cornersService = 
     nh.advertiseService("getCorners", cornerCallback);
@@ -643,6 +650,9 @@ int main (int argc, char* argv[]) {
   if(LocalConfig::debugging) 
     std::cout<<"After defining subscriber, services and clients."<<std::endl;
 
+  if (LocalConfig::debugging)                                                                                                                        
+    std::cout<<"Getting color data."<<std::endl; 
+
   if (LocalConfig::useGUI) {
 	  ros::ServiceClient infoClient =
 	    nh.serviceClient<surgical_msgs::HoleCutInfo>("getGUIData");
@@ -650,6 +660,12 @@ int main (int argc, char* argv[]) {
   }
   else //Test:
 	  testHolesCuts();
+
+  ros::Subscriber pc_sub =
+    nh.subscribe(LocalConfig::pcTopic, 1, &callback);
+
+  if (LocalConfig::debugging)                                                                                                                        
+    std::cout<<"Got color data"<<std::endl; 
 
   if (LocalConfig::debugging) {
     std::cout<<"Size of holes: "<<holes.size()<<std::endl;
@@ -684,15 +700,16 @@ int main (int argc, char* argv[]) {
 
   
   while (ros::ok() && pending) {
+
     cascader.filter(cloud_pcl, cloud_pcl_filtered);
     
     ColorCloudPtr surgicalUnits_cloud (new ColorCloud);
 
     surgicalUnits_cloud = extractSurgicalUnits (cloud_pcl_filtered,
-    											&holeInds,
-    											&cutInds,
-    											LocalConfig::needle);
-
+						&holeInds,
+						&cutInds,
+						LocalConfig::needle);
+    
     if (LocalConfig::display) {
     	if (LocalConfig::debugging) {
     		viewer->showCloud (cloud_pcl_filtered);
