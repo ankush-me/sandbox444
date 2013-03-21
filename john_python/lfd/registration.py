@@ -268,7 +268,6 @@ def tps_rpm(x_nd, y_md, n_iter = 5, reg_init = .1, reg_final = .001, rad_init = 
             xwarped_nd = f.transform_points(x_nd)
         # targ_nd = find_targets(x_nd, y_md, corr_opts = dict(r = rads[i], p = .1))
         corr_nm = calc_correspondence_matrix(xwarped_nd, y_md, r=rads[i], p=.2)
-
         wt_n = corr_nm.sum(axis=1)
         
         goodn = wt_n > .1
@@ -286,6 +285,20 @@ def tps_rpm(x_nd, y_md, n_iter = 5, reg_init = .1, reg_final = .001, rad_init = 
             targ_pose_array = conversions.array_to_pose_array(targ_Nd, 'base_plate')
             Globals.handles.append(Globals.rviz.draw_curve(targ_pose_array,rgba=(1,1,0,1),type=Marker.CUBE_LIST))
             
+        if verbose and False:
+            print "-------------------------------------"
+            print "  iter        : ", i
+            print "  x_nd size   : ", x_nd.shape
+            print "  y_md size   : ", y_md.shape
+            print "  corr_nm size: ", corr_nm.shape
+            print "  wt_n size   : ", wt_n.shape
+            print "  wt_n type   : ", type(wt_n)
+            #print "  wt_n        : ", wt_n
+            print "  goodn size  : ", goodn.shape
+            #print "  goodn       : ", goodn
+            print "  targ_Nd size: ", targ_Nd.shape
+            
+
     if return_full:
         info = {}
         info["corr_nm"] = corr_nm
@@ -579,11 +592,11 @@ def tps_rpm_multi(x_clouds, y_clouds, n_iter = 5, reg_init = .1, reg_final = .00
 
     _, dim  = combined_x.shape 
     f       = ThinPlateSpline.identity(dim)
-    
+
     for i in xrange(n_iter):
         target_pts   = []
         good_inds    = []
-
+        wt           = []
         for j in xrange(len(x_clouds)): #process a pair of point-clouds
             x_nd = x_clouds[j]
             y_md = y_clouds[j]
@@ -598,12 +611,26 @@ def tps_rpm_multi(x_clouds, y_clouds, n_iter = 5, reg_init = .1, reg_final = .00
             targ_Nd = np.dot(corr_nm[goodn, :]/wt_n[goodn][:,None], y_md) # calculate the average points based on softmatching
             target_pts.append(targ_Nd)
             good_inds.append(goodn)  
+            wt.append(wt_n)
 
         target_pts = np.concatenate(target_pts)
         good_inds  = np.concatenate(good_inds)
-        source     = combined_x[good_inds]
+        source_pts = combined_x[good_inds]
+        wt         = np.concatenate(wt)
 
-        f.fit(source, target_pts, bend_coef = regs[i], wt_n = wt_n[goodn], rot_coef = 10*regs[i], verbose=verbose)
+
+        if verbose and False:
+            print "--------------------------------------------"
+            print "  iter                  : ", i
+            print "  input src pts size    : ", combined_x.shape
+            print "  input target pts size : ", combined_y.shape
+            print "  source_pts size       : ", source_pts.shape
+            print "  target_pts size       : ", target_pts.shape
+            print "  good_inds size        : ", good_inds.shape
+            print "  wt size               : ", wt.shape
+            
+
+        f.fit(source_pts, target_pts, bend_coef = regs[i], wt_n = wt[good_inds], rot_coef = 10*regs[i], verbose=verbose)
 
         if plotting and i%plotting==0:
             plot_orig_and_warped_clouds(f.transform_points, combined_x, combined_y)   
