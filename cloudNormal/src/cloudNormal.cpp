@@ -55,7 +55,7 @@ void cloudCB(const sensor_msgs::PointCloud2::ConstPtr& cloud_data) {
 
 
 /** Just spins the viewer.
-		For thread safety, it uses a mutex to access the viewer */
+    For thread safety, it uses a mutex to access the viewer */
 void spin_viewer() {
 	while (!viewer.wasStopped () && ros::ok()) {
 		boost::mutex::scoped_lock updateLock(updateModelMutex);

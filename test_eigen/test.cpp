@@ -38,6 +38,10 @@ int main(int argc, char** argv) {
     cout<<w[i]<<"\t";
   cout<<endl<<"---------------"<<endl;
 
+  /** Inverting a singular matrix. **/
+  m << 1,0,0,1,0,0,1,0,0;
+  cout<<" Should segfault/ get garbage: "<<m.determinant()<<endl;
+
   /** Affine matrix in Eigen. */
   MatrixXf ml(4,4);
   ml << 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16;
@@ -46,6 +50,10 @@ int main(int argc, char** argv) {
   t.linear() = ml.transpose().block(0,0,3,3);
   t.translation() = ml.block(0,3,3,1);
   cout<<"Affine: "<<endl<<t.affine()<<endl;
+  Vector3f tt(1,2,3);
+  t.translation() += tt;
+  cout<<"Affine after translation: "<<endl<<t.affine()<<endl;
+
 
   /** Blocks. */
   MatrixXf matr(3,2);
@@ -84,8 +92,8 @@ int main(int argc, char** argv) {
   Eigen::JacobiSVD<MatrixXf> svd(centered / sqrt(5), ComputeFullV);
   cout << "Its singular values are:" << endl << svd.singularValues() << endl;
   cout << "Its right singular vectors are the columns of the thin V matrix:" << endl << svd.matrixV() << endl;
-  MatrixXf V = svd.matrixV();
-  Vector3f f1 = V.col(0);
+  MatrixXf V   = svd.matrixV();
+  Vector3f f1  = V.col(0);
   Vector3f  f2 = V.col(1);
   Vector3f  f3 = V.col(2);
   cout << "f1(0)" << f1(0) << endl;
@@ -104,6 +112,9 @@ int main(int argc, char** argv) {
 
 
   std::cout<<"---------------------------------------"<<std::endl;
+
+  Vector3f o3(1,2,3), o2(4,5,6);
+  cout << "outer? : "<< o3.cwiseProduct(o2) <<endl;
 
 
 
