@@ -11,3 +11,5 @@ lib/*
 */lib/*
 apython/*
 *.pyc
+*.pydevproject
+*.project
