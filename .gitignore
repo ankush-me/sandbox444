@@ -10,3 +10,4 @@ msg_gen/*
 lib/*
 */lib/*
 apython/*
+*.pyc
