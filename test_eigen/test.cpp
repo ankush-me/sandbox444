@@ -3,7 +3,7 @@
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
 #include <math.h>
-
+#include <limits>
 #include <vector>
 
 using namespace Eigen;
@@ -110,13 +110,49 @@ int main(int argc, char** argv) {
   cout << "<v3,v2>" << f3.dot(f2) << endl;
 
 
-
   std::cout<<"---------------------------------------"<<std::endl;
 
   Vector3f o3(1,2,3), o2(4,5,6);
   cout << "outer? : "<< o3.cwiseProduct(o2) <<endl;
 
+  MatrixXd mxx(3,3);
+  mxx << 1,0,0,0,2,0,0,0,3;
+  cout << "mxx : "<< endl<<mxx <<endl;
 
+  vector<double> v31(3);
+  VectorXd::Map(&v31[0], 3) = mxx.row(0);
 
+  cout << "v: "<<endl;
+  for(int i=0; i < 3; i++) 
+    cout<< v31[i]<< " " <<endl;
+  cout<<endl;
+
+  v31[1] = 100;
+  cout << "v: "<<endl;
+  for(int i=0; i < 3; i++) 
+    cout << v31[i]<< " " <<endl;
+  cout<<endl;
+
+  cout << " mxx : "<<endl <<mxx<<endl;
+
+  Matrix3d tmat = Matrix3d::Identity();
+  tmat(0,0) = 0; tmat(1,1) = 10; tmat(1,2) = 20;
+  cout << "tmat: " << tmat<<endl;
+  cout << "------------\n";
+  for (unsigned i=0; i < tmat.rows(); i++) {
+    double sum = tmat.row(i).sum() + numeric_limits<double>::min();
+    tmat.row(i) /= sum;
+  }
+
+  cout << tmat << endl;
+
+  MatrixXd src(4,3);
+  src<< 0,0,0,1,1,1,2,2,2,3,3,3;
+  MatrixXd target(1,3);
+  target<< 1,1,1;
+
+  cout <<"cloud err: "<<  (src.rowwise() -target.row(0)).rowwise().squaredNorm().transpose()<<endl;
+
+  
   return 0;
 }
