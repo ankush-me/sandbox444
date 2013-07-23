@@ -14,12 +14,11 @@ class ProcessStarter(object):
         self.running = True
         self.orprocess  = None
         self.guiprocess = None
-        (self.pipeGUI, self.pipeOR) = Pipe()
+        self.pipeGUI, self.pipeOR = Pipe()
         self.StartProcesses()
-        
 
     def StartProcesses(self):
-        self.guiprocess = Process(target=self._StartGUI)
+        self.guiprocess = Process(target=self.__startGUI__)
         self.guiprocess.start()        
         self.pipeGUI.send(["StartViewer", None])
         self.orprocess = Process(target=ORServer,args=(self.pipeOR,))
@@ -34,7 +33,7 @@ class ProcessStarter(object):
         except:
             pass
 
-    def _StartGUI(self):
+    def __startGUI__(self):
         app  = QtGui.QApplication(sys.argv)
         form = trajApp(self.pipeGUI, self)
         form.show()

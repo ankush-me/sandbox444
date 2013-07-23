@@ -1,11 +1,6 @@
-import sys, os, re, logging, signal
-from multiprocessing import Process,Pipe
-from threading import Thread
 from openravepy import *
-import numpy as np
-
-from EasyPR2 import EasyPR2
-
+from ravens import Ravens
+import cPickle
 
 class ORServer(object):
     '''
@@ -16,19 +11,16 @@ class ORServer(object):
         RaveDestroy()
     
     def __init__(self, pipe):
-        self.pipe    =  pipe
-        self.running =  True
-        self.pr2     =  EasyPR2()
-        self.f = True
-        self._run()
-        
+        self.pipe    = pipe
+        self.running = True
+        self.robot   = Ravens()
+        self.__run__()
 
-    def _run(self):
+    def __run__(self):
         while(self.running):
-            (functionName,args) = self.pipe.recv()
+            functionName,args = self.pipe.recv()
             self.executeFunction(functionName, args)
 
-            
     def Stop(self):
         self.running = False
         return None,"Stopping!!!"
@@ -48,7 +40,7 @@ class ORServer(object):
 
     def StartViewer(self):
         try:
-            self.pr2.env.SetViewer('qtcoin')
+            self.robot.env.SetViewer('qtcoin')
             return True,None
         except:
             pass
@@ -56,9 +48,11 @@ class ORServer(object):
 
     
     def SetJoints(self,joints):
-        if self.f:
-            self.f = False
-        joints = eval(joints)
-        self.pr2.set_joints(joints)
-        
+        joints = cPickle.loads(joints)
+        self.robot.set_joints(joints)       
         return True, "Joints set."
+    
+
+    def PlotPoints(self, pts):
+        pts = cPickle.loads(pts)
+        
