@@ -59,5 +59,3 @@ class ORServer(object):
         assert pts.ndim==2 and pts.shape[1]==3, "ORServer : PlotPoints, unknown point-data."
         with self.robot.env:
             self.plot_handle = self.robot.env.plot3(points=pts, pointsize=15.0 )
-            
-        
