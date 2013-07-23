@@ -14,6 +14,7 @@ class ORServer(object):
         self.pipe    = pipe
         self.running = True
         self.robot   = Ravens()
+        self.plot_handle = None
         self.__run__()
 
     def __run__(self):
@@ -55,4 +56,8 @@ class ORServer(object):
 
     def PlotPoints(self, pts):
         pts = cPickle.loads(pts)
+        assert pts.ndim==2 and pts.shape[1]==3, "ORServer : PlotPoints, unknown point-data."
+        with self.robot.env:
+            self.plot_handle = self.robot.env.plot3(points=pts, pointsize=15.0 )
+            
         
