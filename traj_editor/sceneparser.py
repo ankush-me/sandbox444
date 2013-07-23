@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from rapprentice.colorize import *
 
@@ -13,7 +14,7 @@ class Grips:
 
 
 def getnewseg():
-    return {'jtimes' : [], 'joints':[], 'ptimes':[], 'points':[], 'gtimes':[], 'grips':[]}
+    return {'name':'', 'jtimes' : [], 'joints':[], 'ptimes':[], 'points':[], 'gtimes':[], 'grips':[]}
 
 
 def readpoints(sfile):
@@ -31,6 +32,12 @@ def readpoints(sfile):
 
 def parsescene(fname):
     sfile = open(fname, 'r')
+    match = re.search('run(\d*)\.txt', fname)
+    if match:
+        runnum = match.group(1)
+    else:
+        print colorize('[ERROR : Scene parser] : Not a valid scene file path.', 'red', True)
+
 
     # fast-forward to the first look:
     try:
@@ -57,7 +64,7 @@ def parsescene(fname):
             
         if cmd == 'points':
             currseg['ptimes'].append(timestamp)
-            currseg['points'].append(readpoints(file))
+            currseg['points'].append(readpoints(sfile))
 
         elif cmd == 'joints':
             joints = [float(j) for j in splitline[4:]]
@@ -77,6 +84,8 @@ def parsescene(fname):
         elif cmd == 'look':
             segments.append(currseg)
             currseg = getnewseg()
-
     segments.append(currseg)
+
+    for i,seg in enumerate(segments):
+        seg['name'] = 'run%s-seg%d'%(runnum, i)
     return segments
