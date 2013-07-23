@@ -53,7 +53,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
 
 
     def changed_trajList(self, row):
-        if row != -1:
+        if 0 <= row < self.syncList.length():
             segitem    = self.syncList.segmentList[row]
             self.startSlider.setMinimum(0)
             self.startSlider.setMaximum(segitem.len-1)
@@ -83,21 +83,20 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
 
 
     def clicked_playSelectedButton(self):
-        pass
-#         caption = self.playSelectedButton.text()
-#         if caption=="Play Selected":
-#             self.playSelectedButton.setText("Pause")
-#             selection = self.trajList.currentRow()
-#             if selection >=0 and selection < self.syncList.length():
-#                 self.setVisibilityModifiers(True)
-#                 trajItem        = self.syncList.itemList[selection]
-#                 jTask = JointsPusher(self.playSlider.value(), trajItem.end, self.playSlider, self)
-#                 jTask.start()
-#         else:
-#             self.playSelectedButton.setText("Pause")
-#             jTask = JointsPusher(0, -1, self.playSlider, self)
-#             jTask.start()
-        
+        caption = self.playSelectedButton.text()
+        if caption=="Play Selected":
+            self.playSelectedButton.setText("Pause")
+            selection = self.trajList.currentRow()
+            if selection >=0 and selection < self.syncList.length():
+                self.setVisibilityModifiers(True)
+                segitem = self.syncList.segmentList[selection]
+                jTask = JointsPusher(self.playSlider.value(), segitem.end, self.playSlider, self)
+                jTask.start()
+        else:
+            self.playSelectedButton.setText("Pause")
+            jTask = JointsPusher(0, -1, self.playSlider, self)
+            jTask.start()
+
 
     def clicked_removeButton(self):
         if self.syncList.length() > 0:
@@ -105,7 +104,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
             if self.syncList.length() > 0:
                 selection = self.trajList.currentRow()
                 if selection >=0:
-                    trajItem        = self.syncList.itemList[selection]
+                    trajItem        = self.syncList.segmentList[selection]
                     self.startVal.setText('start: %d'%trajItem.start)
                     self.endVal.setText('end: %d'%trajItem.end)
             else:
@@ -221,38 +220,43 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         selection = self.trajList.currentRow()
         if selection >=0:
             segitem    = self.syncList.segmentList[selection]
-            joints = segitem.seg['joints'][tickPos]
-            self.pipeOR.send(['SetJoints', cPickle.dumps(joints)])
+            if 0<= tickPos <  segitem.seg['joints'].shape[0]:
+                joints = segitem.seg['joints'][tickPos,:]
+                self.pipeOR.send(['SetJoints', cPickle.dumps(joints)])
+                
+                points_idx = segitem.seg['j2ptimes'][tickPos]
+                if  points_idx >=0:
+                    self.pipeOR.send(['PlotPoints', cPickle.dumps(segitem.seg['points'][points_idx,:,:])])
 
 
-# class JointsPusher(Thread):
-#     allPushers = set()
-#     def __init__(self, start_pos, end_pos, emitter, trajApp, delay=0.01):
-#         Thread.__init__(self)
-#         self.end_pos   = end_pos
-#         self.start_pos = start_pos
-#         self.emitter   = emitter
-#         self.trajApp   = trajApp
-#         self.delay  = delay
-#         self.daemon = True
-#         self.stop   = False
-#         JointsPusher.allPushers.add(self)
-# 
-#     def run(self):
-#         for p in JointsPusher.allPushers:
-#             p.stop = True
-#         self.stop = False
-# 
-#         while self.start_pos <= self.end_pos:
-#             self.emitter.emit(QtCore.SIGNAL("sliderMoved(int)"), self.start_pos)
-#             self.trajApp.playSlider.setValue(self.start_pos)
-#             self.start_pos += 1
-#             time.sleep(self.delay)
-#             if self.stop: break
-# 
-#         self.trajApp.setVisibilityModifiers(False)
-#         self.trajApp.playSelectedButton.setText("Play Selected")
-#         JointsPusher.allPushers.remove(self)
+class JointsPusher(Thread):
+    allPushers = set()
+    def __init__(self, start_pos, end_pos, emitter, trajApp, delay=0.01):
+        Thread.__init__(self)
+        self.end_pos   = end_pos
+        self.start_pos = start_pos
+        self.emitter   = emitter
+        self.trajApp   = trajApp
+        self.delay  = delay
+        self.daemon = True
+        self.stop   = False
+        JointsPusher.allPushers.add(self)
+ 
+    def run(self):
+        for p in JointsPusher.allPushers:
+            p.stop = True
+        self.stop = False
+ 
+        while self.start_pos <= self.end_pos:
+            self.emitter.emit(QtCore.SIGNAL("sliderMoved(int)"), self.start_pos)
+            self.trajApp.playSlider.setValue(self.start_pos)
+            self.start_pos += 1
+            time.sleep(self.delay)
+            if self.stop: break
+ 
+        self.trajApp.setVisibilityModifiers(False)
+        self.trajApp.playSelectedButton.setText("Play Selected")
+        JointsPusher.allPushers.remove(self)
 
 
 if __name__ == "__main__":

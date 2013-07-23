@@ -84,8 +84,27 @@ def parsescene(fname):
         elif cmd == 'look':
             segments.append(currseg)
             currseg = getnewseg()
+    
     segments.append(currseg)
 
+    # post-process each segment after reading them:
     for i,seg in enumerate(segments):
+        # name each segment
         seg['name'] = 'run%s-seg%d'%(runnum, i)
+        
+        # numpy-ze the data for each segment
+        seg['joints'] = np.array(seg['joints'])
+        
+        seg['points'] = np.array(seg['points'])
+
+        # correct for relative transformation in bulletsim
+        seg['points'] -= np.array((0,0, 0.05))
+
+        seg['jtimes'] = np.array(seg['jtimes'])
+        seg['gtimes'] = np.array(seg['gtimes'])
+        seg['ptimes'] = np.array(seg['ptimes'])
+        
+        # associate point-clouds with each joint-set:
+        seg['j2ptimes'] = np.searchsorted(seg['ptimes'], seg['jtimes'], side='left') - 1
+
     return segments

@@ -27,10 +27,10 @@ class ORServer(object):
         return None,"Stopping!!!"
 
 
-    def executeFunction(self,name,args):  
+    def executeFunction(self,name,args):        
         rValue = None
         rMessage = "Function with " + name + " not available"
-        
+
         if name in dir(self):
             if(args is None):
                 rValue,rMessage = getattr(self,name)()
@@ -58,4 +58,5 @@ class ORServer(object):
         pts = cPickle.loads(pts)
         assert pts.ndim==2 and pts.shape[1]==3, "ORServer : PlotPoints, unknown point-data."
         with self.robot.env:
-            self.plot_handle = self.robot.env.plot3(points=pts, pointsize=15.0 )
+            self.plot_handle = self.robot.env.plot3(points=pts, pointsize=5.0 )
+        return True, "Points done."
