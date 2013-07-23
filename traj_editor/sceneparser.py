@@ -16,9 +16,9 @@ def getnewseg():
     return {'jtimes' : [], 'joints':[], 'ptimes':[], 'points':[], 'gtimes':[], 'grips':[]}
 
 
-def readpoints(file):
+def readpoints(sfile):
     points = []
-    for line in file:
+    for line in sfile:
         if 'end-points' in line:
             return points
         
@@ -30,11 +30,11 @@ def readpoints(file):
 
 
 def parsescene(fname):
-    file = open(fname, 'r')
+    sfile = open(fname, 'r')
 
     # fast-forward to the first look:
     try:
-        while('look' not in file.next()):
+        while('look' not in sfile.next()):
             pass
     except StopIteration:
         print colorize("[ERROR : Scene parser] : First look not found", "red", True)
@@ -45,7 +45,7 @@ def parsescene(fname):
 
     currseg = getnewseg()
 
-    for line in file:
+    for line in sfile:
         splitline = line.split()
         
         if splitline[1] != ":" :
