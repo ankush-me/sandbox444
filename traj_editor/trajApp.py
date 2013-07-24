@@ -9,6 +9,7 @@ from ListInteractor import ListInteractor
 from EasyPR2        import EasyPR2
 from ProcessStarter import *
 from joints_utils import *
+import copy
 
 from sceneparser import *
 import cPickle    
@@ -114,47 +115,112 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
 
     def clicked_addButton(self):
         fname = self.dialog.getOpenFileName(caption='Add Trajectory')
-        self.add_segments(fname, False)
+        self.add_segments(fname)
 
 
-    def add_segments(self, fname, copy=False):
+    def add_segments(self, fname):
         """
         Open a scene file and add all segments in that into the list obj.
         """
         segments = parsescene(fname)
         for seg in segments:
-            if copy:
-                seg['name'] = seg['name'] + '-copy'
             self.syncList.addItem(seg)
 
 
+    def write_point_data(self, ptypes, psecs, points, tfile):
+        n = 0
+        for i,ptype in enumerate(ptypes):
+            tfile.write('\t%s\n'%ptype)
+            ptnum = 0
+            while ptnum < psecs[i]:
+                x,y,z = points[n, :]
+                tfile.write('\t\t%f\t%f\t%f\n'%(x,y,z))
+                n += 1
+                ptnum += 1
+        tfile.write('end-points\n')
+
+
     def clicked_exportButton(self):
-        pass
-#         if self.syncList.length() > 0:
-#             trajItem = self.syncList.itemList[0]
-#             prev = trajItem.getTrajectory()
-#             prev = prev[trajItem.start:trajItem.end+1]
-#             cummulative = prev
-#             
-#             for i in xrange(1, self.syncList.length()):
-#                 lastJoint   = prev[len(prev)-1]
-#                 currItem    = self.syncList.itemList[i]
-#                 current     = currItem.getTrajectory()
-#                 current     = current[currItem.start:currItem.end+1]
-#                 firstJoint  = current[0]
-#                 joined = joinJoints(lastJoint, firstJoint)
-#                 cummulative = np.concatenate([cummulative, joined, current])
-#                 prev        = current            
-#             path = str(self.dialog.getSaveFileName(caption='Export Trajectory'))
-#             dpath   = path[ : path.rfind('/')+1]
-#             prefix = path[path.rfind('/')+1 : ]
-#             
-#             np.save(dpath + prefix + '_larm.npy' , cummulative['l_arm'])                                                                      
-#             np.save(dpath + prefix + '_rarm.npy' , cummulative['r_arm'])                                                                      
-#             np.save(dpath + prefix + '_lgrip.npy', cummulative['l_gripper'])                                                                     
-#             np.save(dpath + prefix + '_rgrip.npy', cummulative['r_gripper'])
-#             self.addTrajectories([dpath+prefix+'_larm.npy'])
-    
+        starttime = 0
+        
+        segs_copy = copy.deepcopy(self.syncList.segmentList)
+        for i in xrange(len(segs_copy)):
+            segitem = segs_copy[i]
+            
+            # retime
+            for prop in ['jtimes', 'gtimes', 'ptimes']:
+                prop_starttime = segitem.seg[prop][0]
+                segitem.seg[prop] += (starttime - prop_starttime)
+        
+            print colorize("now printting stuff...", "red", True)
+            print segitem.start, segitem.end
+            print segitem.seg['joints'].shape
+            print segitem.seg['jtimes'].shape
+
+            
+            # update the start-time for the next segment:
+            starttime = segitem.seg['jtimes'][segitem.end]
+        
+            segitem.seg['joints'] = segitem.seg['joints'][segitem.start:segitem.end+1,:]
+            segitem.seg['jtimes'] = segitem.seg['jtimes'][segitem.start:segitem.end+1]          
+
+            seg_starttime = segitem.seg['jtimes'][segitem.start]
+            seg_endtime   = segitem.seg['jtimes'][segitem.end]
+            
+            # filter the grips based on start and end points of the segment:
+            g_start = np.searchsorted(segitem.seg['gtimes'], seg_starttime, 'left')
+            g_end   = np.searchsorted(segitem.seg['gtimes'], seg_endtime, 'right')
+            segitem.seg['gtimes'] = segitem.seg['gtimes'][g_start:g_end+1]
+            segitem.seg['grips']  = segitem.seg['grips'][g_start:g_end+1]
+            
+            # filter the point clouds based on the start and end points of the segment
+            p_start = np.searchsorted(segitem.seg['ptimes'], seg_starttime, 'left')
+            p_end   = np.searchsorted(segitem.seg['ptimes'], seg_endtime, 'right')
+            segitem.seg['ptimes'] = segitem.seg['ptimes'][p_start:p_end+1]
+            segitem.seg['points']  = segitem.seg['points'][p_start:p_end+1,:,:]
+
+        # undo the bulletsim-openrave offset.
+        for segitem in segs_copy:
+            segitem.seg['points'] += np.array((0,0, 0.05))
+            
+
+        fname = '/home/ankush/sandbox/traj_editor/tmp2.txt'#self.dialog.getSaveFileName(caption='Save Trajectory')
+        tfile = open(fname, 'w')
+
+        grip_dict = {0: 'release r', 1:'grab r', 2:'release l', 3:'grab l'}
+
+        for segitem in segs_copy:
+
+            if (segitem.seg['jtimes'].shape[0] > 0):
+                looktime = segitem.seg['jtimes'][0]
+                tfile.write("%f : look\n"%looktime)
+                
+                alltimes = np.unique(np.concatenate([segitem.seg['jtimes'], segitem.seg['ptimes'], segitem.seg['gtimes']]))
+                
+                ji = pi = gi = 0
+                for t in alltimes:
+                    
+                    # write points
+                    if pi < segitem.seg['ptimes'].shape[0] and segitem.seg['ptimes'][pi]==t:
+                        tfile.write('%f : points\n'%segitem.seg['ptimes'][pi])
+                        self.write_point_data(segitem.seg['ptypes'], segitem.seg['point_secs'], segitem.seg['points'][pi,:,:], tfile)
+                        pi += 1
+
+                    # write grips:
+                    if gi < segitem.seg['gtimes'].shape[0] and segitem.seg['gtimes'][gi]==t:
+                        tfile.write('%f : %s\n'%(segitem.seg['gtimes'][gi], grip_dict[segitem.seg['grips'][gi]]))
+                        gi += 1
+                    
+                    # write joints:
+                    if ji < segitem.seg['jtimes'].shape[0] and segitem.seg['jtimes'][ji]==t:
+                        joint_msg = '%f : joints :\t'%segitem.seg['jtimes'][ji]
+                        for j in segitem.seg['joints'][ji,:]:
+                            joint_msg += '%f  '%j
+                        joint_msg += '\n'
+                        tfile.write(joint_msg)
+                        ji += 1
+        tfile.close()
+        print 'DONE WITH THE FILE'
     
     def clicked_downButton(self):
         selection = self.trajList.currentRow()
@@ -175,15 +241,13 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
            
 
     def clicked_copyButton(self):
-        pass
-#         selection = self.trajList.currentRow()
-#         if selection >= 0 and selection < self.syncList.length():
-#             segitem  = self.syncList.segmentList[selection]
-#             copyItem = trajectoryItem(self.syncList, item.prefix, item.path, copy=True)
-#             copyItem.start = item.start
-#             copyItem.end = item.end
-#             copyItem.length = item.length
-            
+        selection = self.trajList.currentRow()
+        if 0 <= selection < self.syncList.length():
+            segitem  = self.syncList.segmentList[selection]
+            copy_seg = copy.deepcopy(segitem.seg)
+            copy_seg['name'] = segitem.seg['name'] + '-copy'
+            self.syncList.addItem(copy_seg)
+
 
     def moved_startSlider(self, pos):
         selection = self.trajList.currentRow()

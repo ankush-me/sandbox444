@@ -19,15 +19,26 @@ def getnewseg():
 
 def readpoints(sfile):
     points = []
+    firstDone = False
+    secCount = 0
+    secCounts = []
+    ptypes = []
     for line in sfile:
         if 'end-points' in line:
-            return points
+            secCounts.append(secCount)
+            return (points, ptypes, secCounts)
         
         if line.startswith('\t') and not line.startswith('\t\t'):
-            continue
+            ptypes.append(line.split()[0])
+            if firstDone:
+                secCounts.append(secCount)
+                secCount = 0
+            else:
+                firstDone = True
         else:
             point = [float(coord) for coord in line.split()]
             points.append(point)
+            secCount += 1
 
 
 def parsescene(fname):
@@ -64,7 +75,16 @@ def parsescene(fname):
             
         if cmd == 'points':
             currseg['ptimes'].append(timestamp)
-            currseg['points'].append(readpoints(sfile))
+            points, ptypes, secCounts = readpoints(sfile)
+            
+            if not currseg.has_key('ptypes'):
+                currseg['ptypes'] = ptypes
+
+            # this 'point_secs' is a big hack
+            if not currseg.has_key('point_secs'):
+                currseg['point_secs'] = secCounts
+               
+            currseg['points'].append(points)
 
         elif cmd == 'joints':
             joints = [float(j) for j in splitline[4:]]
@@ -87,6 +107,7 @@ def parsescene(fname):
     
     segments.append(currseg)
 
+
     # post-process each segment after reading them:
     for i,seg in enumerate(segments):
         # name each segment
@@ -96,10 +117,9 @@ def parsescene(fname):
         seg['joints'] = np.array(seg['joints'])
         
         seg['points'] = np.array(seg['points'])
-
         # correct for relative transformation in bulletsim
         seg['points'] -= np.array((0,0, 0.05))
-
+        
         seg['jtimes'] = np.array(seg['jtimes'])
         seg['gtimes'] = np.array(seg['gtimes'])
         seg['ptimes'] = np.array(seg['ptimes'])
