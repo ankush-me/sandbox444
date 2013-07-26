@@ -47,28 +47,32 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         QtCore.QObject.connect(self.downButton,         QtCore.SIGNAL("clicked()"), self.clicked_downButton)
         QtCore.QObject.connect(self.copyButton,         QtCore.SIGNAL("clicked()"), self.clicked_copyButton)
         QtCore.QObject.connect(self.upButton,           QtCore.SIGNAL("clicked()"), self.clicked_upButton)
-        QtCore.QObject.connect(self.startSlider,    QtCore.SIGNAL("valueChanged(int)"), self.moved_startSlider)
-        QtCore.QObject.connect(self.endSlider,      QtCore.SIGNAL("valueChanged(int)"), self.moved_endSlider)
+        QtCore.QObject.connect(self.startSlider,    QtCore.SIGNAL("sliderMoved(int)"), self.moved_startSlider)
+        QtCore.QObject.connect(self.endSlider,      QtCore.SIGNAL("sliderMoved(int)"), self.moved_endSlider)
         QtCore.QObject.connect(self.playSlider,     QtCore.SIGNAL("valueChanged(int)"), self.moved_playSlider)
         QtCore.QObject.connect(self.trajList,       QtCore.SIGNAL("currentRowChanged(int)"), self.changed_trajList)
 
 
     def changed_trajList(self, row):
+        ## update the sliders and various labels
         if 0 <= row < self.syncList.length():
+            
+            print "changed list row : ", row
+            
             segitem    = self.syncList.segmentList[row]
             self.startSlider.setMinimum(0)
-            self.startSlider.setMaximum(segitem.len-1)
-            self.startSlider.setValue(segitem.start)
-
+            self.startSlider.setMaximum(segitem.slen-1)           
             self.endSlider.setMinimum(0)
-            self.endSlider.setMaximum(segitem.len-1)
-            self.endSlider.setValue(segitem.len-1-segitem.end)
+            self.endSlider.setMaximum(segitem.slen-1)
+            self.playSlider.setMinimum(segitem.sstart)
+            self.playSlider.setMaximum(segitem.send)
+            
+            self.startSlider.setValue(segitem.sstart)
+            self.endSlider.setValue(segitem.slen-1-segitem.send)
+            self.playSlider.setValue(segitem.sstart)
 
-            self.playSlider.setMinimum(segitem.start)
-            self.playSlider.setMaximum(segitem.end)
-            self.playSlider.setValue(segitem.start)
-            self.startVal.setText('start: %d'% segitem.start)
-            self.endVal.setText('end: %d'% segitem.end)
+            self.startVal.setText('start: %d'% segitem.sstart)
+            self.endVal.setText('end: %d'% segitem.send)
             
 
     def setVisibilityModifiers(self, visible):
@@ -91,7 +95,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
             if selection >=0 and selection < self.syncList.length():
                 self.setVisibilityModifiers(True)
                 segitem = self.syncList.segmentList[selection]
-                jTask = JointsPusher(self.playSlider.value(), segitem.end, self.playSlider, self)
+                jTask = JointsPusher(self.playSlider.value(), segitem.send, self.playSlider, self)
                 jTask.start()
         else:
             self.playSelectedButton.setText("Pause")
@@ -106,8 +110,8 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
                 selection = self.trajList.currentRow()
                 if selection >=0:
                     trajItem        = self.syncList.segmentList[selection]
-                    self.startVal.setText('start: %d'%trajItem.start)
-                    self.endVal.setText('end: %d'%trajItem.end)
+                    self.startVal.setText('start: %d'%trajItem.sstart)
+                    self.endVal.setText('end: %d'%trajItem.send)
             else:
                 self.startVal.setText('start: ')
                 self.endVal.setText('end: ')
@@ -146,45 +150,38 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         segs_copy = copy.deepcopy(self.syncList.segmentList)
         for i in xrange(len(segs_copy)):
             segitem = segs_copy[i]
-            
-            # retime
-            for prop in ['jtimes', 'gtimes', 'ptimes']:
-                prop_starttime = segitem.seg[prop][0]
-                segitem.seg[prop] += (starttime - prop_starttime)
-        
-            print colorize("now printting stuff...", "red", True)
-            print segitem.start, segitem.end
-            print segitem.seg['joints'].shape
-            print segitem.seg['jtimes'].shape
 
-            
-            # update the start-time for the next segment:
-            starttime = segitem.seg['jtimes'][segitem.end]
-        
-            segitem.seg['joints'] = segitem.seg['joints'][segitem.start:segitem.end+1,:]
-            segitem.seg['jtimes'] = segitem.seg['jtimes'][segitem.start:segitem.end+1]          
+            print "i : ", i
+            print "segment end : ", segitem.send
+            print "len jtimes :", segitem.seg['jtimes'].shape
 
-            seg_starttime = segitem.seg['jtimes'][segitem.start]
-            seg_endtime   = segitem.seg['jtimes'][segitem.end]
+            seg_starttime = segitem.seg['jtimes'][segitem.sstart]
+            seg_endtime   = segitem.seg['jtimes'][segitem.send]
+
+            # filter the joints/ joint-times:        
+            segitem.seg['joints'] = segitem.seg['joints'][segitem.sstart:segitem.send+1,:]
+            segitem.seg['jtimes'] = segitem.seg['jtimes'][segitem.sstart:segitem.send+1] - seg_starttime + starttime          
             
             # filter the grips based on start and end points of the segment:
             g_start = np.searchsorted(segitem.seg['gtimes'], seg_starttime, 'left')
             g_end   = np.searchsorted(segitem.seg['gtimes'], seg_endtime, 'right')
-            segitem.seg['gtimes'] = segitem.seg['gtimes'][g_start:g_end+1]
+            segitem.seg['gtimes'] = segitem.seg['gtimes'][g_start:g_end+1]  - seg_starttime + starttime
             segitem.seg['grips']  = segitem.seg['grips'][g_start:g_end+1]
             
             # filter the point clouds based on the start and end points of the segment
             p_start = np.searchsorted(segitem.seg['ptimes'], seg_starttime, 'left')
             p_end   = np.searchsorted(segitem.seg['ptimes'], seg_endtime, 'right')
-            segitem.seg['ptimes'] = segitem.seg['ptimes'][p_start:p_end+1]
+            segitem.seg['ptimes'] = segitem.seg['ptimes'][p_start:p_end+1]  - seg_starttime + starttime
             segitem.seg['points']  = segitem.seg['points'][p_start:p_end+1,:,:]
 
-        # undo the bulletsim-openrave offset.
-        for segitem in segs_copy:
+            # undo the bulletsim-openrave offset.
             segitem.seg['points'] += np.array((0,0, 0.05))
-            
 
-        fname = '/home/ankush/sandbox/traj_editor/tmp2.txt'#self.dialog.getSaveFileName(caption='Save Trajectory')
+            # update the start-time for the next segment:
+            starttime = seg_starttime
+
+
+        fname = self.dialog.getSaveFileName(caption='Save Trajectory')
         tfile = open(fname, 'w')
 
         grip_dict = {0: 'release r', 1:'grab r', 2:'release l', 3:'grab l'}
@@ -192,9 +189,12 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
         for segitem in segs_copy:
 
             if (segitem.seg['jtimes'].shape[0] > 0):
-                looktime = segitem.seg['jtimes'][0]
-                tfile.write("%f : look\n"%looktime)
                 
+                ## add the look (denoting start of a new segment), only for the original segments.
+                if 'copy' not in segitem.seg['name']:
+                    looktime = segitem.seg['jtimes'][0]
+                    tfile.write("%f : look\n"%looktime)
+
                 alltimes = np.unique(np.concatenate([segitem.seg['jtimes'], segitem.seg['ptimes'], segitem.seg['gtimes']]))
                 
                 ji = pi = gi = 0
@@ -220,7 +220,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
                         tfile.write(joint_msg)
                         ji += 1
         tfile.close()
-        print 'DONE WITH THE FILE'
+        print colorize('DONE EXPORTING THE FILE', 'red', True)
     
     def clicked_downButton(self):
         selection = self.trajList.currentRow()
@@ -246,34 +246,37 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
             segitem  = self.syncList.segmentList[selection]
             copy_seg = copy.deepcopy(segitem.seg)
             copy_seg['name'] = segitem.seg['name'] + '-copy'
-            self.syncList.addItem(copy_seg)
+            self.syncList.addItem(copy_seg, segitem.sstart, segitem.send)
 
 
     def moved_startSlider(self, pos):
         selection = self.trajList.currentRow()
         if selection >= 0:
             segitem  = self.syncList.segmentList[selection]
-            endPos = segitem.len - self.endSlider.value()
+            endPos = segitem.slen - self.endSlider.value()
             if pos >= endPos:
                 pos = endPos
                 self.startSlider.setValue(pos)
-            segitem.start = pos
-            self.playSlider.setMinimum(segitem.start)
-            self.startVal.setText("start: %d"%segitem.start)
+            self.syncList.segmentList[selection].sstart = pos
+            self.playSlider.setMinimum(segitem.sstart)
+            self.startVal.setText("start: %d"%segitem.sstart)
             
 
     def moved_endSlider(self, pos):
         selection = self.trajList.currentRow()
+        print "end-slider >>>>>> : ", pos, " | selection : ", selection  
+        
         if selection >= 0:
             segitem  = self.syncList.segmentList[selection]
+            print '\t\t >> : len : ', segitem.slen
             startPos = self.startSlider.value()
-            p  = segitem.len-pos
+            p  = segitem.slen-1-pos
             if p < startPos:
-                pos = segitem.len-startPos
+                pos = segitem.slen-1-startPos
                 self.endSlider.setValue(pos)
-            segitem.end = segitem.len - pos
-            self.playSlider.setMaximum(segitem.end)
-            self.endVal.setText("end: %d"%segitem.end)
+            self.syncList.segmentList[selection].send = segitem.slen- 1 - pos
+            self.playSlider.setMaximum(segitem.send)
+            self.endVal.setText("end: %d"%segitem.send)
             
 
     def moved_playSlider(self, pos):

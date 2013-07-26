@@ -5,9 +5,9 @@ import numpy as np
 class segmentWrapper:
     def __init__(self, seg, length, start, end):
         self.seg = seg
-        self.len = length
-        self.start = start
-        self.end = end
+        self.slen = length
+        self.sstart = start
+        self.send = end
 
 
 class ListInteractor:
@@ -15,15 +15,24 @@ class ListInteractor:
         self.listWidget = qtListObj
         self.segmentList   = []
 
-    def addItem(self, segment):
+    def addItem(self, segment, s_start=None, s_end=None):
         """
         Add an item to the internal list as well as display list.
         """        
         self.listWidget.addItem(QtGui.QListWidgetItem(segment['name']))
         
         jlen = len(segment['joints'])
-        segitem = segmentWrapper(segment, jlen, 0, jlen-1)
+        
+        if s_start == None:
+            s_start = 0
+            
+        if s_end == None:
+            s_end = jlen-1
+
+        segitem = segmentWrapper(segment, jlen, s_start, s_end)
         self.segmentList.append(segitem)
+
+    
 
 
     def removeItem(self, idx):

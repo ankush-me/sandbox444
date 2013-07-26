@@ -20,7 +20,7 @@ class ProcessStarter(object):
     def StartProcesses(self):
         self.guiprocess = Process(target=self.__startGUI__)
         self.guiprocess.start()        
-        #self.pipeGUI.send(["StartViewer", None])
+        self.pipeGUI.send(["StartViewer", None])
         self.orprocess = Process(target=ORServer,args=(self.pipeOR,))
         self.orprocess.start()
         return True
