@@ -19,7 +19,7 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
     @QtCore.pyqtSignature("")
     def on_pbClose_clicked(self):
         self.closeAll()
-    
+
     def __init__(self, pipeOR, processStarter):
         super(trajApp,self).__init__(None)
         self.pipeOR = pipeOR        
