@@ -94,6 +94,7 @@ def main(env,options):
         for angle in arange(0,pi/2,0.05):
             Ttarget = dot(Ttarget0,matrixFromAxisAngle([angle,0,0]))
             Tgrasp = dot(Ttarget,Tgraspoffset)
+            print poseFromMatrix(Tgrasp)
             traj.Insert(traj.GetNumWaypoints(),poseFromMatrix(Tgrasp))
 
         planningutils.RetimeAffineTrajectory(traj,maxvelocities=ones(7),maxaccelerations=5*ones(7))

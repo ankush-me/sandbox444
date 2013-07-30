@@ -27,22 +27,22 @@ class SurgicalGUI;
 class ImageCommunicator {
 
 private:
-  /** Node handle of the ros node, this should attach to. */
+  /** Node handle of the ROS node, THIS object should attach to. */
   ros::NodeHandle* _nh_ptr;
 
   /** Subscriber for getting new point clouds. */
   ros::Subscriber  _cloud_sub;
 
-  /** The latest point-cloud recieved. */
+  /** The latest point-cloud received. */
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr _cloud_ptr;
 
-  /** The latest point-cloud recieved [ROS FORMAT]. */
+  /** The latest point-cloud received [ROS FORMAT]. */
   sensor_msgs::PointCloud2::Ptr _cloud_ptr_ros;
 
   /** Image used for point-cloud->opencv::mat conversion. */
   sensor_msgs::Image _sensor_image;
 
-  /** The main frame is updated, everytime when a new frame is received. */
+  /** The main frame is updated, every time when a new frame is received. */
   cv::Mat _main_frame;
 
   /** This is a temporary frame on which HOLES and CUTS are drawn. */
@@ -60,7 +60,7 @@ private:
   /** True IFF user wants to fix a frame. */
   bool _is_fixed;
 
-  /** Called when this recieves a new point-cloud. */
+  /** Called when this receives a new point-cloud. */
   void cloudCB(const sensor_msgs::PointCloud2::ConstPtr cloud_ros) {
     if (!_is_fixed) {
       _cloud_ptr.reset(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -119,10 +119,10 @@ public:
     return _gui;
   }
 
-  /** Return the pointer to the last point-cloud recieved. */
+  /** Return the pointer to the last point-cloud received. */
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr get_cloud_ptr() {return _cloud_ptr;}
 
-  /** Return the pointer to the last point-cloud recieved [ROS FORMAT]. */
+  /** Return the pointer to the last point-cloud received [ROS FORMAT]. */
   sensor_msgs::PointCloud2::Ptr get_cloud_ptr_ros() {
     _cloud_ptr_ros.reset(new sensor_msgs::PointCloud2);
     pcl::toROSMsg(*_cloud_ptr, *_cloud_ptr_ros);  
