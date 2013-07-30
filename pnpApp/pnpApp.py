@@ -82,7 +82,7 @@ class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
             run_dict['result']  = self.results[run_id]
             summary_dict[run_id] = run_dict
 
-        res_fname = osp.join(self.out_dir, 'run-%s-results.txt'%self.run_names[self.rangenum])
+        res_fname = osp.join(self.out_dir, 'run-%s-results.cpickle'%self.run_names[self.rangenum])
         print colorize('Saving results to : '+ res_fname, 'blue', bold=True)
         cPickle.dump(summary_dict, open(res_fname, 'w'))
 
