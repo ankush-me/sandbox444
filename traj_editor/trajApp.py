@@ -191,9 +191,9 @@ class trajApp(QtGui.QMainWindow,Ui_MainWindow):
             if (segitem.seg['jtimes'].shape[0] > 0):
                 
                 ## add the look (denoting start of a new segment), only for the original segments.
-                if 'copy' not in segitem.seg['name']:
-                    looktime = segitem.seg['jtimes'][0]
-                    tfile.write("%f : look\n"%looktime)
+                #if 'copy' not in segitem.seg['name']:
+                looktime = segitem.seg['jtimes'][0]
+                tfile.write("%f : look\n"%looktime)
 
                 alltimes = np.unique(np.concatenate([segitem.seg['jtimes'], segitem.seg['ptimes'], segitem.seg['gtimes']]))
                 

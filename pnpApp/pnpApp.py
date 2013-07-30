@@ -7,6 +7,7 @@ from os import path as osp
 import argparse
 import yaml, sys
 from rapprentice.colorize import colorize
+import cPickle
 
 class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
 
@@ -15,7 +16,7 @@ class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
         self.closeAll()
 
 
-    def __init__(self, run_names, run_range, run_dir):
+    def __init__(self, run_names, run_range, run_dir, out_dir):
         super(pnpApp, self).__init__(None)
         self.setupUi(self)
                 
@@ -25,6 +26,7 @@ class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
         self.run_range = run_range
         self.run_names = run_names
         self.run_dir   = run_dir
+        self.out_dir   = out_dir
         self.rangenum  = 0
         self.runnum    = run_range[0,0]
         self.done = False
@@ -44,7 +46,7 @@ class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
 
 
     def update_runnums(self, res):
-        self.results[float(self.runnum)] = res
+        self.results[int(self.runnum)] = res
 
         if self.runnum == self.run_range[self.rangenum, 1]:
             self.save_results()
@@ -69,10 +71,21 @@ class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
         self.imgLabel.setPixmap(pixmap) 
     
 
-    def save_results(self):
-        res_fname = osp.join(self.run_dir, 'run-%s-results.txt'%self.run_names[self.rangenum])
+    def save_results(self):       
+        summary_dict = {}
+
+        for run_id in self.results.keys():
+            cost_fname = osp.join(self.run_dir, 'run%d-costs.txt' % run_id)
+            run_info   = cPickle.load(open(cost_fname, 'r'))
+            run_dict = {}
+            run_dict['perturb'] = run_info['perturbations']
+            run_dict['result']  = self.results[run_id]
+            summary_dict[run_id] = run_dict
+
+        res_fname = osp.join(self.out_dir, 'run-%s-results.txt'%self.run_names[self.rangenum])
         print colorize('Saving results to : '+ res_fname, 'blue', bold=True)
-        yaml.dump(self.results, open(res_fname, 'w'), default_flow_style=False)
+        yaml.dump(summary_dict, open(res_fname, 'w'), default_flow_style=False)
+
 
     def clicked_failButton(self):
         if not self.done:
@@ -90,12 +103,13 @@ class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="P/NP App")
     parser.add_argument('-c', '--config', help="Config file name.", required=True)  
-    parser.add_argument('-d', '--rundir', help="Directory with the run images.", default='/media/data/suturing_runs')
+    parser.add_argument('-d', '--rundir', help="Directory with the run images.", required=True)
+    parser.add_argument('-o', '--outdir', help="Directory to save the annotated results", required=True)
     vals = parser.parse_args()
 
     run_ranges = np.loadtxt(vals.config)
     run_names  = [str(row)[0:2] for row in run_ranges[:,0]]
     app  = QtGui.QApplication(sys.argv)
-    form = pnpApp(run_names, run_ranges, vals.rundir)
+    form = pnpApp(run_names, run_ranges, vals.rundir, vals.outdir)
     form.show()
     sys.exit(app.exec_())
