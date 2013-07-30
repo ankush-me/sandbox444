@@ -84,7 +84,7 @@ class pnpApp(QtGui.QMainWindow, pnp_ui.Ui_MainWindow):
 
         res_fname = osp.join(self.out_dir, 'run-%s-results.txt'%self.run_names[self.rangenum])
         print colorize('Saving results to : '+ res_fname, 'blue', bold=True)
-        yaml.dump(summary_dict, open(res_fname, 'w'), default_flow_style=False)
+        cPickle.dump(summary_dict, open(res_fname, 'w'))
 
 
     def clicked_failButton(self):
