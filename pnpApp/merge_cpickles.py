@@ -2,8 +2,8 @@ import cPickle
 from os import path as osp
 from rapprentice.colorize import *
 
-fformat = "/home/ankush/sandbox444/pnpApp/run2_results/run-%d2-results.cpickle"
-merge_fname = "/home/ankush/sandbox444/pnpApp/run2_results/merged-results.cpickle"
+fformat = "/home/ankush/sandbox444/pnpApp/run3_results/run-%d2-results.cpickle"
+merge_fname = "/home/ankush/sandbox444/pnpApp/run3_results/merged-results.cpickle"
 
 mergedict = {}
 

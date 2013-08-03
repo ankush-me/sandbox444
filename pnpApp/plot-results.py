@@ -2,15 +2,21 @@ from __future__ import division
 import cPickle
 import numpy as np
 import matplotlib.pyplot as plot
-
+import openravepy as rave
+from rapprentice.colorize import colorize
+from rapprentice import transformations
 import Image
 from StringIO import StringIO
 
 
-fformat = "/home/ankush/sandbox444/pnpApp/run2_results/run-%d2-results.cpickle"
-merge_fname = "/home/ankush/sandbox444/pnpApp/run2_results/merged-results.cpickle"
+fformat     = "/home/ankush/sandbox444/pnpApp/run3_results/run-%d2-results.cpickle"
+merge_fname = "/home/ankush/sandbox444/pnpApp/run3_results/merged-results.cpickle"
+rfformat    = "/media/data/suturing_runs3/run%d-costs.txt"
+costs_fname = "/home/ankush/sandbox444/pnpApp/run3_results/costs.cpickle"
+
 results = cPickle.load(open(merge_fname, 'r'))
 EPS = np.spacing(1)
+
 """
 # get cube success-ratios
 cube_rates = np.zeros(10)
@@ -88,7 +94,7 @@ plot.savefig('hamming.png')
 # plot traj vc. warp : '+' : success, '-' : failure
 ####################
 
-def getrun_costs(seginfo, dopose = True):
+def getrun_costs(seginfo, dopose = False):
     warp_costs = []
     traj_costs = []
     for seg in seginfo:
@@ -102,10 +108,55 @@ def getrun_costs(seginfo, dopose = True):
 
     return (max(warp_costs), max(traj_costs))
 
-succ_w = []
-succ_t = []
-fail_w = []
-fail_t = []
+
+def get_angles(hmats):
+    """
+    returns the angles of a list of 4x4 transformation matrices
+    """
+    assert hmats.ndim ==3 and hmats.shape[1:]==(4,4)
+    angles = np.empty(hmats.shape[0])
+    for i in xrange(hmats.shape[0]):
+        angles[i] = np.linalg.norm(rave.axisAngleFromRotationMatrix(hmats[i,0:3,0:3]))
+    return angles
+
+
+def get_position(hmats):
+    """
+    returns the norm of the translations of a list of 4x4 transformation matrices
+    """
+    assert hmats.ndim ==3 and hmats.shape[1:]==(4,4)
+    pos = np.empty(hmats.shape[0])
+    for i in xrange(hmats.shape[0]):
+        pos[i] = np.linalg.norm(hmats[i,0:3,3])
+    return pos
+
+
+def get_costs(seginfo):
+    """
+    Returns a 3-tuple (a numpy array):
+    (max warp-cost, max position error, max orientation error) across all segments.
+    Orientation error is calculated as the angle of the axis-angle representation of the error transform : F^-1*F
+    """
+    mwarp  = -1
+    mpos   = -1
+    mangle = -1
+
+    for seg in seginfo:
+        ## update warping costs:
+        mwarp = max(mwarp, sum(seg['warp_costs']))
+        
+        ## update pose errors:
+        for arm in 'lr':
+            dat = seg['%sarm_costs'%arm][0]
+            assert dat.ndim==4 and dat.shape[2:]==(4,4)
+            dat = dat.reshape(dat.shape[0]*dat.shape[1], 4,4)
+            mpos   = max(mpos, np.max(get_position(dat)))
+            mangle = max(mangle, np.max(get_angles(dat)))
+
+    return np.array([mwarp, mpos, mangle])
+
+
+
 
 ## separate the successes and failures
 succ_runs = []
@@ -115,84 +166,32 @@ for item in results.iteritems():
         succ_runs.append(item[0])
     else:
         fail_runs.append(item[0])
+print colorize("succ/ fail : %d/%d" %(len(succ_runs), len(fail_runs)), "red", True)
 
 ## open the costs file for each run and get the relevant data:
-rfformat = "/media/data/run2-merged/run%d-costs.txt"
+succ_w, succ_p, succ_a = [], [], []
+fail_w, fail_p, fail_a = [], [], []
+
 for runnum in succ_runs:
     info = cPickle.load(open(rfformat% runnum))
-    wcost, tcost = getrun_costs(info['segments_info'])
+    wcost, pcost, acost = get_costs(info['segments_info'])
     succ_w.append(wcost)
-    succ_t.append(tcost)
+    succ_p.append(pcost)
+    succ_a.append(acost)
 
 for runnum in fail_runs:
     info = cPickle.load(open(rfformat% runnum))
-    wcost, tcost = getrun_costs(info['segments_info'])
+    wcost, pcost, acost = get_costs(info['segments_info'])
     fail_w.append(wcost)
-    fail_t.append(tcost)
+    fail_p.append(pcost)
+    fail_a.append(acost)
 
-plot.clf()
-"""
-p1 = plot.scatter(succ_t, succ_w, color='black', marker='D',s=10)
-p2 = plot.scatter(fail_t, fail_w, color='black', marker='o', facecolors='none',s=10)
-plot.legend([p1, p2], ["success", "failure"])
-plot.axis((5,12, 0, 0.00002))
-plot.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-plot.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-plot.axhline(y=7e-7)
-plot.xlabel('max pose error', fontsize=18)
-plot.ylabel('warping cost', fontsize=18)
-plot.savefig('tw-pose.pdf')
-plot.show()        
-"""
-
-nbins = 100
-succ_w = np.array(succ_w)
-fail_w = np.array(fail_w)
-wmin, wmax = min(np.min(succ_w), np.min(fail_w)), max(np.max(succ_w), np.max(fail_w))
-wrange = (wmin, wmax)
-
-sc, sbins = np.histogram(succ_w, nbins, range=wrange)
-fc, fbins = np.histogram(fail_w, nbins, range=wrange)
-assert np.allclose(sbins, fbins)
-tc = sc+fc
-sc = sc/(tc + EPS)
-
-## trim the tail of zeros:
-nz = np.max(np.nonzero(sc))
-lim = min(nz+1, len(sc)-1)
-sc = sc[0:lim+1]
-sbins= sbins[0:lim+2]
-wwidth = sbins[1]-sbins[0]
-
-
-plot.bar(left=sbins[0:-1], height=sc, width=wwidth)
-plot.xlabel('warping cost', fontsize=18)
-
-import matplotlib.ticker as tckr
-class FixedOrderFormatter(tckr.ScalarFormatter):
-    """Formats axis ticks using scientific notation with a constant order of 
-    magnitude"""
-    def __init__(self, order_of_mag=0, useOffset=True, useMathText=False):
-        self._order_of_mag = order_of_mag
-        tckr.ScalarFormatter.__init__(self, useOffset=useOffset, 
-                                 useMathText=useMathText)
-    def _set_orderOfMagnitude(self, range):
-        """Over-riding this to avoid having orderOfMagnitude reset elsewhere"""
-        self.orderOfMagnitude = self._order_of_mag
-
-    def _set_format(self):
-        self.format = '%0.2f'
-
-
-#major_formatter = plot.FormatStrFormatter('%0.2e')
-#x_formatter = tckr.ScalarFormatter(useOffset=True)
-#plot.gca().xaxis.set_major_formatter(major_formatter)
-#plot.gca().xaxis.set_minor_formatter(x_formatter)
-#plot.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-plot.gca().xaxis.set_major_formatter(FixedOrderFormatter(-6))
-plot.xticks(sbins[0:sbins.shape[0]-1:4])
-
-
-#print ["%.2e"%nb for nb in sbins]
-plot.ylabel('P(success | warping cost)', fontsize=18)
-plot.show()
+runcosts = {}
+runcosts['succ_w'] = np.array(succ_w)
+runcosts['succ_p'] = np.array(succ_p)
+runcosts['succ_a'] = np.array(succ_a)
+runcosts['fail_w'] = np.array(fail_w)
+runcosts['fail_p'] = np.array(fail_p)
+runcosts['fail_a'] = np.array(fail_a)
+cPickle.dump(runcosts, open(costs_fname, 'wb'))
+print colorize('Saved costs to : %s'%costs_fname, 'green', True)
