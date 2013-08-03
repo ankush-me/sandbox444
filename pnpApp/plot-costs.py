@@ -7,6 +7,7 @@ import os.path as osp
 import matplotlib.pyplot as plot
 import matplotlib.ticker as tckr
 
+EPS = np.spacing(1)
 
 costs_fname = "/home/ankush/sandbox444/pnpApp/run3_results/costs.cpickle"
 save_dir    = "/home/ankush/sandbox444/pnpApp/plots/"
@@ -52,12 +53,12 @@ def plot_scatter(wpass, wfail, ppass, pfail, position=True, x_max=0.025):
     print colorize("saved plot: %s"%plot_fname, "green", True)
 
 
-def plot_prob(pass_dat, fail_data, cost_name='', nbins=50):
+def plot_prob(pass_dat, fail_dat, cost_name='', label_order=-6, is_cost=True, nbins=50):
     """
     pass_dat, fail_dat : np.arrays of costs of successes and failures respectively
     bins the data into n-bins and plots a probability distribution:
     """
-    cmin, cwmax = min(np.min(pass_dat), np.min(fail_dat)), max(np.max(pass_dat), np.max(fail_dat))
+    cmin, cmax = min(np.min(pass_dat), np.min(fail_dat)), max(np.max(pass_dat), np.max(fail_dat))
     crange = (cmin, cmax)
     sc, sbins = np.histogram(pass_dat, nbins, range=crange)
     fc, fbins = np.histogram(fail_dat, nbins, range=crange)
@@ -67,40 +68,40 @@ def plot_prob(pass_dat, fail_data, cost_name='', nbins=50):
     sc = sc/(tc + EPS)
 
     ## trim the tail of zeros:
-    nz = np.max(np.nonzero(sc))
+    nz, mz = np.max(np.nonzero(sc)), np.min(np.nonzero(sc))
     lim = min(nz+1, len(sc)-1)
-    sc = sc[0:lim+1]
-    sbins= sbins[0:lim+2]
+    sc = sc[mz:lim+1]
+    sbins= sbins[mz:lim+2]
     wwidth = sbins[1]-sbins[0]
     
     plot.clf()
     plot.bar(left=sbins[0:-1], height=sc, width=wwidth)
     plot.xlabel('%s cost'%cost_name, fontsize=18)
 
-    plot.gca().xaxis.set_major_formatter(FixedOrderFormatter(-6))
-    plot.xticks(sbins[0:sbins.shape[0]-1:4])
-    plot.ylabel('P(success | %s cost)'%cost_name, fontsize=18)
-    plot.savefig('prob-%s.pdf')
+    plot.gca().xaxis.set_major_formatter(FixedOrderFormatter(label_order))
+    ca1,ca2,ca3,ca4 =  plot.axis()
+    ca1 = max(0,sbins[0]-wwidth)
+    plot.axis((ca1,ca2,ca3,ca4))
+    plot.xticks(sbins[0:-1:4])
+    plot.ylabel('P(success | %s %s)'%(cost_name, 'cost' if is_cost else 'error'), fontsize=18)
+
+    plot_fname = osp.join(save_dir, 'prob-%s.pdf'%cost_name)
+    plot.savefig(plot_fname)
+    print colorize("saved plot: %s"%plot_fname, "green", True)
 
 
 costs = cPickle.load(open(costs_fname, 'rb'))
-plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_p'], costs['fail_p'], True)
-plot.show()
 
+
+# plot the scatter plots : warping-vs-position/ orientation error:
+plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_p'], costs['fail_p'], True)
 plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_a'], costs['fail_a'], False, 2.5)
-plot.show()
+
 
 ## plot probability distributions:
 #  1. p(succ | warp-cost)
 #  2. p(succ | pos-err)
 #  3. p(succ | orient-err)
-
-
-#major_formatter = plot.FormatStrFormatter('%0.2e')
-#x_formatter = tckr.ScalarFormatter(useOffset=True)
-#plot.gca().xaxis.set_major_formatter(major_formatter)
-#plot.gca().xaxis.set_minor_formatter(x_formatter)
-#plot.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
-
-
-#print ["%.2e"%nb for nb in sbins]
+plot_prob(costs['succ_w'], costs['fail_w'], cost_name='warping')
+plot_prob(costs['succ_p'], costs['fail_p'], label_order=-2, cost_name='position', is_cost=False)
+plot_prob(costs['succ_a'], costs['fail_a'], label_order=-1, cost_name='orientation', is_cost=False)
