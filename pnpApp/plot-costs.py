@@ -48,7 +48,7 @@ def plot_scatter(wpass, wfail, ppass, pfail, position=True, x_max=0.025):
     plot.xlabel('max %s error'%pname, fontsize=18)
     plot.ylabel('warping cost', fontsize=18)
 
-    plot_fname = osp.join(save_dir, 'warp-%s.pdf'%pname)
+    plot_fname = osp.join(save_dir, 'warp-%s.png'%pname)
     plot.savefig(plot_fname)
     print colorize("saved plot: %s"%plot_fname, "green", True)
 
@@ -85,7 +85,7 @@ def plot_prob(pass_dat, fail_dat, cost_name='', label_order=-6, is_cost=True, nb
     plot.xticks(sbins[0:-1:4])
     plot.ylabel('P(success | %s %s)'%(cost_name, 'cost' if is_cost else 'error'), fontsize=18)
 
-    plot_fname = osp.join(save_dir, 'prob-%s.pdf'%cost_name)
+    plot_fname = osp.join(save_dir, 'prob-%s.png'%cost_name)
     plot.savefig(plot_fname)
     print colorize("saved plot: %s"%plot_fname, "green", True)
 

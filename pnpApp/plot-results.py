@@ -17,7 +17,6 @@ costs_fname = "/home/ankush/sandbox444/pnpApp/run3_results/costs.cpickle"
 results = cPickle.load(open(merge_fname, 'r'))
 EPS = np.spacing(1)
 
-"""
 # get cube success-ratios
 cube_rates = np.zeros(10)
 for runnum in range(10):
@@ -35,11 +34,10 @@ for runnum in range(10):
 err1 = np.sqrt(cube_rates*(1-cube_rates)/64)
 plot.errorbar(np.arange(10)+1, cube_rates, yerr=err1, ecolor='red')
 plot.scatter(np.arange(10)+1, cube_rates)
-plot.xlabel('scaling steps', fontsize=18)
-plot.ylabel('success rate', fontsize=18)
+plot.xlabel('scaling steps', fontsize=20)
+plot.ylabel('success rate', fontsize=20)
 plot.axis((0,11,0,1))
 plot.savefig('scaling.png')
-plot.show()
 
 
 # get hamming success-ratios:
@@ -62,6 +60,7 @@ for item in results.iteritems():
     else:
         hamm_tot[hamm_dist] += 1
 
+print "1"
 
 hx = np.arange(max(hamm_rates.keys())+1)
 hy = np.zeros(hx.shape)
@@ -70,10 +69,11 @@ for it in hamm_rates.iteritems():
     hy[int(it[0])]  = it[1] / (hamm_tot[it[0]] + np.spacing(1))
     htot[int(it[0])] = hamm_tot[it[0]]
 
-
 hx   = hx[np.nonzero(hy)]
 htot = htot[np.nonzero(hy)]
 hy   = hy[np.nonzero(hy)]
+
+print "2"
 
 
 sds = np.sqrt(hy*(1-hy)/htot)
@@ -83,12 +83,16 @@ _, caps,dd = plot.errorbar(hx, hy, yerr=sds, ecolor='red', lw=1.5 )
 for lcol in dd:
     lcol.set_linewidths(0.8)   
 
+print "3"
+
 plot.scatter(hx,hy)
 plot.axis((-0.5,35, 0,1.03))
-plot.xlabel('hamming length', fontsize=18)
-plot.ylabel('success rate', fontsize=18)
+plot.xlabel('hamming length', fontsize=20)
+plot.ylabel('success rate', fontsize=20)
 plot.savefig('hamming.png')
-"""
+
+print "4"
+
 
 ####################
 # plot traj vc. warp : '+' : success, '-' : failure
