@@ -32,13 +32,13 @@ for runnum in range(10):
     cube_rates[runnum] = n_pass/(n_pass + n_fail)
 
 err1 = np.sqrt(cube_rates*(1-cube_rates)/64)
-plot.errorbar(np.arange(10)+1, cube_rates, yerr=err1, ecolor='red')
+plot.errorbar(np.arange(10)+1, cube_rates, yerr=err1, ecolor='red', lw=2)
 plot.scatter(np.arange(10)+1, cube_rates)
 plot.xlabel('scaling steps', fontsize=20)
 plot.ylabel('success rate', fontsize=20)
 plot.axis((0,11,0,1))
 plot.savefig('scaling.png')
-
+plot.show()
 
 # get hamming success-ratios:
 n_runs = 640.0
@@ -60,8 +60,6 @@ for item in results.iteritems():
     else:
         hamm_tot[hamm_dist] += 1
 
-print "1"
-
 hx = np.arange(max(hamm_rates.keys())+1)
 hy = np.zeros(hx.shape)
 htot = np.zeros(hx.shape)
@@ -73,26 +71,20 @@ hx   = hx[np.nonzero(hy)]
 htot = htot[np.nonzero(hy)]
 hy   = hy[np.nonzero(hy)]
 
-print "2"
-
 
 sds = np.sqrt(hy*(1-hy)/htot)
 plot.clf()
-_, caps,dd = plot.errorbar(hx, hy, yerr=sds, ecolor='red', lw=1.5 )
+_, caps,dd = plot.errorbar(hx, hy, yerr=sds, ecolor='red', lw=2 )
 
 for lcol in dd:
     lcol.set_linewidths(0.8)   
 
-print "3"
-
 plot.scatter(hx,hy)
 plot.axis((-0.5,35, 0,1.03))
-plot.xlabel('hamming length', fontsize=20)
+plot.xlabel('Hamming distance', fontsize=20)
 plot.ylabel('success rate', fontsize=20)
 plot.savefig('hamming.png')
-
-print "4"
-
+plot.show()
 
 ####################
 # plot traj vc. warp : '+' : success, '-' : failure
@@ -158,9 +150,6 @@ def get_costs(seginfo):
             mangle = max(mangle, np.max(get_angles(dat)))
 
     return np.array([mwarp, mpos, mangle])
-
-
-
 
 ## separate the successes and failures
 succ_runs = []

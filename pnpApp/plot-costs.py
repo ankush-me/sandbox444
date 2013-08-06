@@ -53,7 +53,7 @@ def plot_scatter(wpass, wfail, ppass, pfail, position=True, x_max=0.025):
     print colorize("saved plot: %s"%plot_fname, "green", True)
 
 
-def plot_prob(pass_dat, fail_dat, cost_name='', label_order=-6, is_cost=True, nbins=50):
+def plot_prob(pass_dat, fail_dat, cost_name='', label_order=-6, is_cost=True, nbins=20):
     """
     pass_dat, fail_dat : np.arrays of costs of successes and failures respectively
     bins the data into n-bins and plots a probability distribution:
@@ -71,19 +71,25 @@ def plot_prob(pass_dat, fail_dat, cost_name='', label_order=-6, is_cost=True, nb
     nz, mz = np.max(np.nonzero(sc)), np.min(np.nonzero(sc))
     lim = min(nz+1, len(sc)-1)
     sc = sc[mz:lim+1]
+    tc = tc[mz:lim+1]
+    
+    sd = np.sqrt(sc*(1-sc)/(tc+EPS))
+
     sbins= sbins[mz:lim+2]
     wwidth = sbins[1]-sbins[0]
-    
+     
     plot.clf()
-    plot.bar(left=sbins[0:-1], height=sc, width=wwidth)
-    plot.xlabel('%s cost'%cost_name, fontsize=18)
+    plot.bar(left=sbins[0:-1], height=sc, width=wwidth, yerr=sd, color=(0.8,0.8,0.8), ecolor=(0,0,0))
+
+    xname = '%s%s %s' % ('' if is_cost else 'max ', cost_name, 'cost' if is_cost else 'error')
+    plot.xlabel(xname, fontsize=18)
 
     plot.gca().xaxis.set_major_formatter(FixedOrderFormatter(label_order))
     ca1,ca2,ca3,ca4 =  plot.axis()
     ca1 = max(0,sbins[0]-wwidth)
-    plot.axis((ca1,ca2,ca3,ca4))
+    plot.axis((ca1,ca2,ca3,1.))
     plot.xticks(sbins[0:-1:4])
-    plot.ylabel('P(success | %s %s)'%(cost_name, 'cost' if is_cost else 'error'), fontsize=18)
+    plot.ylabel('P(success | %s)'%xname, fontsize=18)
 
     plot_fname = osp.join(save_dir, 'prob-%s.png'%cost_name)
     plot.savefig(plot_fname)
@@ -94,14 +100,14 @@ costs = cPickle.load(open(costs_fname, 'rb'))
 
 
 # plot the scatter plots : warping-vs-position/ orientation error:
-plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_p'], costs['fail_p'], True)
-plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_a'], costs['fail_a'], False, 2.5)
+#plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_p'], costs['fail_p'], True)
+#plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_a'], costs['fail_a'], False, 2.5)
 
 
 ## plot probability distributions:
 #  1. p(succ | warp-cost)
 #  2. p(succ | pos-err)
 #  3. p(succ | orient-err)
-plot_prob(costs['succ_w'], costs['fail_w'], cost_name='warping')
-plot_prob(costs['succ_p'], costs['fail_p'], label_order=-2, cost_name='position', is_cost=False)
-plot_prob(costs['succ_a'], costs['fail_a'], label_order=-1, cost_name='orientation', is_cost=False)
+plot_prob(costs['succ_w'], costs['fail_w'], cost_name='warping', nbins=22)
+plot_prob(costs['succ_p'], costs['fail_p'], label_order=-2, cost_name='position', is_cost=False, nbins=27)
+plot_prob(costs['succ_a'], costs['fail_a'], label_order=-1, cost_name='orientation', is_cost=False, nbins=15)
