@@ -37,7 +37,7 @@ plot.scatter(np.arange(10)+1, cube_rates)
 plot.xlabel('scaling steps', fontsize=20)
 plot.ylabel('success rate', fontsize=20)
 plot.axis((0,11,0,1))
-plot.savefig('scaling.png')
+plot.savefig('scaling.pdf')
 plot.show()
 
 # get hamming success-ratios:
@@ -77,13 +77,13 @@ plot.clf()
 _, caps,dd = plot.errorbar(hx, hy, yerr=sds, ecolor='red', lw=2 )
 
 for lcol in dd:
-    lcol.set_linewidths(0.8)   
+    lcol.set_linewidths(1.)   
 
 plot.scatter(hx,hy)
 plot.axis((-0.5,35, 0,1.03))
 plot.xlabel('Hamming distance', fontsize=20)
 plot.ylabel('success rate', fontsize=20)
-plot.savefig('hamming.png')
+plot.savefig('hamming.pdf')
 plot.show()
 
 ####################
@@ -151,6 +151,8 @@ def get_costs(seginfo):
 
     return np.array([mwarp, mpos, mangle])
 
+
+"""
 ## separate the successes and failures
 succ_runs = []
 fail_runs = []
@@ -188,3 +190,4 @@ runcosts['fail_p'] = np.array(fail_p)
 runcosts['fail_a'] = np.array(fail_a)
 cPickle.dump(runcosts, open(costs_fname, 'wb'))
 print colorize('Saved costs to : %s'%costs_fname, 'green', True)
+"""
