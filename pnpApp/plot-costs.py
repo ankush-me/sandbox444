@@ -28,6 +28,47 @@ class FixedOrderFormatter(tckr.ScalarFormatter):
         self.format = '%0.2f'
 
 
+def find_cumulative(pvals, fvals):
+    
+    pvals = np.sort(np.asarray(pvals))
+    fvals = np.sort(np.asarray(fvals))
+
+    pind = 0
+    find = 0
+    
+    succ = 0
+    tot = 0
+    vals = []
+    probs = []
+
+    while pind < len(pvals) and find < len(fvals):
+        if pvals[pind] < fvals[find]:
+            vals.append(pvals[pind])
+            pind += 1
+            succ += 1
+            tot += 1
+            probs.append(succ/tot)
+        else:
+            vals.append(fvals[find])
+            find += 1
+            tot += 1
+            probs.append(succ/tot)
+
+    for ind in range(pind, len(pvals)):
+        vals.append(pvals[ind])
+        succ += 1
+        tot += 1
+        probs.append(succ/tot)
+
+    for ind in range(find, len(fvals)):
+        vals.append(fvals[ind])
+        tot += 1
+        probs.append(succ/tot)
+
+    return vals, probs
+            
+    
+
 def plot_scatter(wpass, wfail, ppass, pfail, position=True, x_max=0.025):
     """
     Does a scatter plot of the warping costs (y-axis) and position/angle error (x-axis)
@@ -75,9 +116,9 @@ def plot_prob(pass_dat, fail_dat, cost_name='', label_order=-6, is_cost=True, nb
     
     sd = np.sqrt(sc*(1-sc)/(tc+EPS))
 
-    sbins= sbins[mz:lim+2]
+    sbins  = sbins[mz:lim+2]
     wwidth = sbins[1]-sbins[0]
-     
+
     plot.clf()
     plot.bar(left=sbins[0:-1], height=sc, width=wwidth, yerr=sd, color=(0.8,0.8,0.8), ecolor=(0,0,0))
 
@@ -96,18 +137,40 @@ def plot_prob(pass_dat, fail_dat, cost_name='', label_order=-6, is_cost=True, nb
     print colorize("saved plot: %s"%plot_fname, "green", True)
 
 
+def give_last_val_above_prob(vals, probs, p):
+    ind = -1
+    prob = -1
+    lval = -1
+    for i in range(len(probs)):
+        if probs[i] >= p:
+            lval = vals[i]
+            ind = i
+            prob = probs[i]
+
+    return ind, prob, lval
+
+
+
 costs = cPickle.load(open(costs_fname, 'rb'))
 
-
 # plot the scatter plots : warping-vs-position/ orientation error:
-plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_p'], costs['fail_p'], True)
-plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_a'], costs['fail_a'], False, 2.5)
+# plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_p'], costs['fail_p'], True)
+# plot_scatter(costs['succ_w'], costs['fail_w'], costs['succ_a'], costs['fail_a'], False, 2.5)
 
 
 ## plot probability distributions:
 #  1. p(succ | warp-cost)
 #  2. p(succ | pos-err)
 #  3. p(succ | orient-err)
-plot_prob(costs['succ_w'], costs['fail_w'], cost_name='warping', nbins=22)
-plot_prob(costs['succ_p'], costs['fail_p'], label_order=-2, cost_name='position', is_cost=False, nbins=27)
-plot_prob(costs['succ_a'], costs['fail_a'], label_order=-1, cost_name='orientation', is_cost=False, nbins=15)
+# plot_prob(costs['succ_w'], costs['fail_w'], cost_name='warping', nbins=22)
+# plot_prob(costs['succ_p'], costs['fail_p'], label_order=-2, cost_name='position', is_cost=False, nbins=27)
+# plot_prob(costs['succ_a'], costs['fail_a'], label_order=-1, cost_name='orientation', is_cost=False, nbins=15)
+
+raw_input('w')
+wvals, wprob = find_cumulative(costs['succ_w'], costs['fail_w'])
+
+raw_input('p')
+pvals, pprob = find_cumulative(costs['succ_p'], costs['fail_p'])
+
+raw_input('o')
+ovals, oprob = find_cumulative(costs['succ_a'], costs['fail_a'])

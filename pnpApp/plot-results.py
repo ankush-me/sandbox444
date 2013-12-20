@@ -81,7 +81,7 @@ for lcol in dd:
 
 plot.scatter(hx,hy)
 plot.axis((-0.5,35, 0,1.03))
-plot.xlabel('Hamming distance', fontsize=20)
+plot.xlabel('perturbation distance', fontsize=20)
 plot.ylabel('success rate', fontsize=20)
 plot.savefig('hamming.pdf')
 plot.show()
